@@ -21,6 +21,8 @@ from typing import List, Tuple
 import util
 from game import Directions
 
+Coordinate = tuple[int, int] # (x, y)
+State = tuple[Coordinate, str, int] # (coordinate, direction, cost)
 
 class SearchProblem:
     """
@@ -76,7 +78,7 @@ def tinyMazeSearch(problem):
     return [s, s, w, s, w, w, s, w]
 
 
-def depthFirstSearch(problem: SearchProblem) -> List[Directions]:
+def depthFirstSearch(problem: SearchProblem) -> list[Directions]:
     """
     Search the deepest nodes in the search tree first.
 
@@ -90,10 +92,11 @@ def depthFirstSearch(problem: SearchProblem) -> List[Directions]:
     print("Start:", problem.getStartState())
     print("Is the start a goal?", problem.isGoalState(problem.getStartState()))
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
-    stack: util.Stack = util.Stack()
-    exploredStates: util.Queue = util.Queue()
-    state = (problem.getStartState(),'',0)
-    return dfsHelper(state, problem, [])[0]
+    state : State = (problem.getStartState(),'',0)
+    moves : list[Directions]  = dfsHelper(state, problem, set())[0]
+    moves.pop() # Last move is always gibberish
+    moves.reverse() # Moves are returned in reverse order
+    return moves
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
@@ -130,19 +133,20 @@ ucs = uniformCostSearch
 
 
 
-def dfsHelper(state, problem, exploredStates) -> Tuple[list[Directions], set[Tuple[int, int]]]:
-    exploredStates.append(state)
+def dfsHelper(state : State, problem, exploredStates : set[Coordinate]) -> Tuple[list[Directions], set[Coordinate]]:
+    exploredStates.add(state[0])
     if (problem.isGoalState(state[0])):
-        return [directionMapper(state[1])], []
+        return [directionMapper(state[1])], set()
     for newState in problem.getSuccessors(state[0]):
-        if (newState in exploredStates):
+        if (newState[0] in exploredStates): # newState is also a State object, the explored States only holds coordinates.
             continue
         moveList, exploredStates = dfsHelper(newState, problem, exploredStates)
         if (moveList is not None):
-            return moveList.append(directionMapper(state[1])), []
+            moveList.append(directionMapper(state[1]))
+            return moveList, set()
     return None, exploredStates
 
-def directionMapper(directionString):
+def directionMapper(directionString : str) -> Directions:
     direction: Directions
     if (directionString == "South"):
         direction = Directions.SOUTH
