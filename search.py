@@ -23,6 +23,7 @@ from game import Directions
 
 Coordinate = tuple[int, int] # (x, y)
 State = tuple[Coordinate, str, int] # (coordinate, direction, cost)
+StateWithParent = tuple[Coordinate, str, int, "StateWithParent"]
 
 class SearchProblem:
     """
@@ -98,11 +99,26 @@ def depthFirstSearch(problem: SearchProblem) -> list[Directions]:
     moves.reverse() # Moves are returned in reverse order
     return moves
 
-def breadthFirstSearch(problem):
+def breadthFirstSearch(problem) -> list[Directions]:
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
-
+    queue : util.Queue = util.Queue() # We use a queue to enqueue al states from the current depth.
+    exploredStates : set[Coordinate] = set() # We use this to make sure we do not re-explore states
+    state : StateWithParent = (problem.getStartState(),'',0, None) # The state with parent variable ensures we can find our way from the solution to the origin without using recursion
+    resultState : StateWithParent = None # When a goalState is found this will be set with that goalState.
+    queue.push(state) # We start our search by pushing the startState as the first state to check.
+    while (not queue.isEmpty()): 
+        state = queue.pop() # We examine the state that was pushed the least recently on the queue
+        exploredStates.add(state[0]) # We add this state to our exploredStates.
+        if (problem.isGoalState(state[0])): # If we have arrived at our goal state, set the resultState variable and break out of the loop.
+            resultState = state
+            break
+        for newState in problem.getSuccessors(state[0]): # Otherwise we loop over all possible states that can be reached from the currentState.
+            if (not newState[0] in exploredStates): # If the state is unexplored we enqueue for our bfs.
+                newStateWithParent = (newState[0], newState[1], newState[2], state) # we add the currentState as the parent of the new state. this way we can follow the propagation of the algorithm.
+                queue.push(newStateWithParent)
+    moves = stateWithParentToDirections(resultState) # this function allows us to back-track a certain position to our origin and write the moves to a list.
+    return moves
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
@@ -134,17 +150,18 @@ ucs = uniformCostSearch
 
 
 def dfsHelper(state : State, problem, exploredStates : set[Coordinate]) -> Tuple[list[Directions], set[Coordinate]]:
-    exploredStates.add(state[0])
-    if (problem.isGoalState(state[0])):
-        return [directionMapper(state[1])], set()
+    exploredStates.add(state[0]) # add the current state to the explored state. This ensures that we don't pass through it twice.
+    if (problem.isGoalState(state[0])): #if we have reached the goal state return the Direction that is held within the state variable.
+        return [directionMapper(state[1])], set() # we pass an empty set because that is more memory friendly
     for newState in problem.getSuccessors(state[0]):
         if (newState[0] in exploredStates): # newState is also a State object, the explored States only holds coordinates.
-            continue
-        moveList, exploredStates = dfsHelper(newState, problem, exploredStates)
-        if (moveList is not None):
-            moveList.append(directionMapper(state[1]))
-            return moveList, set()
+            continue # if a generated state is already explored we ignore it.
+        moveList, exploredStates = dfsHelper(newState, problem, exploredStates) # if an unexplored state is encountered we will check it now.
+        if (moveList is not None): # if None was returned, this means that state search has not found any viable paths. Otherwise we have successfully found a solution
+            moveList.append(directionMapper(state[1])) # list.appends returns None, so we need to appends separately, we append the Direction from the current state variable
+            return moveList, set() 
     return None, exploredStates
+
 
 def directionMapper(directionString : str) -> Directions:
     direction: Directions
@@ -157,3 +174,22 @@ def directionMapper(directionString : str) -> Directions:
     else:
         direction = Directions.EAST
     return direction
+
+def stateWithParentToDirections(state : StateWithParent) -> list[Directions]:
+    """Given a certain state that has parent information. back-track through the tree to the origin and record all moves to a list.
+
+    Args:
+        state (StateWithParent): a state that holds a parent that is also a StateWithParent.
+
+    Returns:
+        list[Directions]: The direction in correct order FROM origin TO solution.
+    """
+    parent : StateWithParent = state[3]
+    currentState : StateWithParent = state
+    moves : list[Directions] = []
+    while (parent is not None): # as long as there is parent information we will keep the loop going.
+        if (currentState[1] in ["North", "East", "West", "South"]): #If the direction is gibberish we won't consider it for recording. 
+            moves.insert(0, directionMapper(currentState[1])) #insert the move at the beginning of the list.
+        currentState = parent # the next state we will check will be our current parent.
+        parent = currentState[3] # the new nex parent will be the parent of the new next state.
+    return moves
