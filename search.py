@@ -132,7 +132,51 @@ def breadthFirstSearch(problem) -> list[Directions]:
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    queue : util.PriorityQueue = util.PriorityQueue()
+    exploredStates : set[Coordinate] = set()
+    state : StateWithParent = (problem.getStartState(), '', 0, None)
+    resultState : StateWithParent = None
+    queue.push(state, state[2])
+    # The algorithm is a lot like bfs but with the addition that we update each state's cost with the sum of the previous state costs.
+    # This cost is then also given to the priority queue as its priority.
+    while (not queue.isEmpty()):
+        state = queue.pop()
+        if (state[0] in exploredStates): 
+            # We check if the state already is queue only here because:
+            # ***             B1          E1
+            # ***            ^  \        ^  \
+            # ***           /    V      /    V
+            # ***         *A --> C --> D --> F --> [G]
+            # ***           \    ^      \    ^
+            # ***            V  /        V  /
+            # ***             B2          E2
+            # ***
+            # ***         A is the start state, G is the goal. 
+            # In uniform cost search we will first push B1, C, B2 all with cost 1. Then we will visit B1 and push C with cost 2.
+            # This way we would visit C twice. once with cost 1 and once with cost 2. Its important that both 'paths' are queued. The least cost path will
+            # be examined first. any time we pop the same state again it must be with a higher cost (PriorityQueue).
+            # Why should we enQueue C twice. let's take a look at the following example:
+            # ***             1      1      1
+            # ***         *A ---> B ---> C ---> [G]
+            # ***          |                     ^
+            # ***          |         10          |
+            # ***          \---------------------/
+            # ***
+            # ***         A is the start state, G is the goal.
+            # We push state G and B to the queue. if we would mark G as visited before actually enqueuing it and then popping the following situation occurs.
+            # We push G with cost 10 and B, both marked as explored, we check B -> we push C on the queue -> we check C -> We try to push G with cost 3! on the queue but it is already marked as explored and will be ignored.
+            # We check G with cost 10 (parent is A). G is goal so that path will be returned. This path is suboptimal.
+            continue
+        exploredStates.add(state[0])
+        if (problem.isGoalState(state[0])):
+            resultState = state
+            break
+        for newState in problem.getSuccessors(state[0]):
+            if (not newState[0] in exploredStates):
+                newStateWithParent = (newState[0], newState[1], state[2] + newState[2], state)
+                queue.update(newStateWithParent, newStateWithParent[2])
+    moves = stateWithParentToDirections(resultState)
+    return moves
 
 
 def nullHeuristic(state, problem=None):
