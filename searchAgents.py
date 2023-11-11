@@ -287,6 +287,7 @@ class CornersProblem(search.SearchProblem):
         for corner in self.corners:
             if not startingGameState.hasFood(*corner):
                 print('Warning: no food in corner ' + str(corner))
+        self.maxSize = util.manhattanDistance(self.corners[0], self.corners[-1])
         self._expanded = 0 # DO NOT CHANGE; Number of search nodes expanded
         # Please add any code here which you would like to use
         # in initializing the problem
@@ -367,7 +368,7 @@ class CornersProblem(search.SearchProblem):
         return len(actions)
 
 
-def cornersHeuristic(state, problem):
+def cornersHeuristic(state: tuple[Coordinate, tuple[bool]], problem: CornersProblem) -> int:
     """
     A heuristic for the CornersProblem that you defined.
 
@@ -384,7 +385,29 @@ def cornersHeuristic(state, problem):
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
-    return 0 # Default to trivial solution
+    visitedCorners : list[bool] = list(state[1])
+    try:
+        currentCornerIndex = corners.index(state[0])
+        visitedCorners[currentCornerIndex] = True
+    except ValueError:
+        pass
+    manhattanDistance : int = 0
+    currentCoordinate : Coordinate = state[0]
+    while (not all(visitedCorners)):
+        currentSmallestDistance : int = None
+        currentSmallestDistanceIndex : int = None
+        for index, cornerCoordinate in enumerate(corners):
+            if (visitedCorners[index]):
+                continue
+            if (currentSmallestDistance is None or currentSmallestDistance > util.manhattanDistance(currentCoordinate, cornerCoordinate)):
+                currentSmallestDistance = util.manhattanDistance(currentCoordinate, cornerCoordinate)
+                currentSmallestDistanceIndex = index
+        currentNearestCorner = corners[currentSmallestDistanceIndex]
+        visitedCorners[currentSmallestDistanceIndex] = True
+        manhattanDistance +=  util.manhattanDistance(currentNearestCorner, currentCoordinate)
+        currentCoordinate = currentNearestCorner
+    return manhattanDistance
+    # return 0 # Default to trivial solution
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
