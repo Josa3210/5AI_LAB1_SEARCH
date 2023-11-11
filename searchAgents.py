@@ -34,12 +34,16 @@ description for details.
 Good luck and happy searching!
 """
 
+from copy import deepcopy
 from game import Directions
 from game import Agent
 from game import Actions
 import util
 import time
 import search
+
+Coordinate = tuple[int, int] # (x, y)
+State = tuple[Coordinate, str, int] # (coordinate, direction, cost)
 
 class GoWestAgent(Agent):
     "An agent that goes West until it can't."
@@ -207,7 +211,6 @@ class PositionSearchProblem(search.SearchProblem):
         if state not in self._visited:
             self._visited[state] = True
             self._visitedlist.append(state)
-
         return successors
 
     def getCostOfActions(self, actions):
@@ -280,7 +283,7 @@ class CornersProblem(search.SearchProblem):
         self.walls = startingGameState.getWalls()
         self.startingPosition = startingGameState.getPacmanPosition()
         top, right = self.walls.height-2, self.walls.width-2
-        self.corners = ((1,1), (1,top), (right, 1), (right, top))
+        self.corners : tuple[Coordinate] = ((1,1), (1,top), (right, 1), (right, top))
         for corner in self.corners:
             if not startingGameState.hasFood(*corner):
                 print('Warning: no food in corner ' + str(corner))
@@ -289,22 +292,36 @@ class CornersProblem(search.SearchProblem):
         # in initializing the problem
         "*** YOUR CODE HERE ***"
 
-    def getStartState(self):
+    def getStartState(self) -> tuple[Coordinate, tuple[bool]]:
         """
         Returns the start state (in your state space, not the full Pacman state
         space)
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        startingVisitedCorners : list[bool] = [False, False, False, False]
+        try:
+            startingCornerIndex = self.corners.index(self.startingPosition)
+            startingVisitedCorners[startingCornerIndex] = True
+        except ValueError:
+            pass
+        return self.startingPosition, tuple(startingVisitedCorners)
+        # util.raiseNotDefined()
 
-    def isGoalState(self, state):
+    def isGoalState(self, state : tuple[Coordinate, tuple[bool]]) -> bool:
         """
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        visitedCorners : list[bool] = list(state[1])
+        try:
+            currentCornerIndex = self.corners.index(state[0])
+            visitedCorners[currentCornerIndex] = True
+        except ValueError:
+            pass
+        return all(visitedCorners)
+        # util.raiseNotDefined()
 
-    def getSuccessors(self, state):
+    def getSuccessors(self, state: tuple[Coordinate, tuple[bool]]) -> list[State]:
         """
         Returns successor states, the actions they require, and a cost of 1.
 
@@ -317,12 +334,19 @@ class CornersProblem(search.SearchProblem):
 
         successors = []
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            # Add a successor state to the successor list if the action is legal
-            # Here's a code snippet for figuring out whether a new position hits a wall:
-            #   x,y = currentPosition
-            #   dx, dy = Actions.directionToVector(action)
-            #   nextx, nexty = int(x + dx), int(y + dy)
-            #   hitsWall = self.walls[nextx][nexty]
+            x,y = state[0]
+            visitedCorners : list[bool] = list(state[1])
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            try:
+                currentCornerIndex = self.corners.index(state[0])
+                visitedCorners[currentCornerIndex] = True
+            except ValueError:
+                pass
+            if not self.walls[nextx][nexty]:
+                nextState = (nextx, nexty), tuple(visitedCorners)
+                cost = 1
+                successors.append( (nextState, action, cost) )
 
             "*** YOUR CODE HERE ***"
 
