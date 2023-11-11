@@ -385,12 +385,18 @@ def cornersHeuristic(state: tuple[Coordinate, tuple[bool]], problem: CornersProb
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
+    # We check the visited corners. We update this list because the current state could be a corner, this should than be ignored from the heuristic.
     visitedCorners : list[bool] = list(state[1])
     try:
         currentCornerIndex = corners.index(state[0])
         visitedCorners[currentCornerIndex] = True
     except ValueError:
         pass
+
+    # We use the following heuristic. We calculate the Manhattan distance from our current position to our nearest unexplored.
+    # Then we mark that corner as explored. Now we calculate the Manhattan distance from this corner to it's nearest unexplored corner.
+    # We repeat this process until al corners are visited.
+    # The heuristic will be the sum of all these distances.
     manhattanDistance : int = 0
     currentCoordinate : Coordinate = state[0]
     while (not all(visitedCorners)):
