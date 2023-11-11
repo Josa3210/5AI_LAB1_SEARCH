@@ -578,18 +578,23 @@ class ClosestDotSearchAgent(SearchAgent):
         print('Path found with cost %d.' % len(self.actions))
 
     def findPathToClosestDot(self, gameState):
+        from search import uniformCostSearch
+        from game import Grid
+
         """
         Returns a path (a list of actions) to the closest dot, starting from
         gameState.
         """
         # Here are some useful elements of the startState
         startPosition = gameState.getPacmanPosition()
-        food = gameState.getFood()
+        food : Grid= gameState.getFood()
         walls = gameState.getWalls()
         problem = AnyFoodSearchProblem(gameState)
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        nearestFoodPallet : Coordinate = getNNearestFoodPallets(startPosition, food.asList(), 1)[0]
+        positionProblem : AnyFoodSearchProblem = AnyFoodSearchProblem(gameState)
+        return uniformCostSearch(positionProblem)
 
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
