@@ -477,7 +477,7 @@ class AStarFoodSearchAgent(SearchAgent):
         self.searchFunction = lambda prob: search.aStarSearch(prob, foodHeuristic)
         self.searchType = FoodSearchProblem
 
-def foodHeuristic(state, problem):
+def foodHeuristic(state , problem):
     """
     Your heuristic for the FoodSearchProblem goes here.
 
@@ -505,9 +505,60 @@ def foodHeuristic(state, problem):
     Subsequent calls to this heuristic can access
     problem.heuristicInfo['wallCount']
     """
-    position, foodGrid = state
+    from game import Grid
+    position : Coordinate = state[0]
+    _foodGrid : Grid = state[1]
     "*** YOUR CODE HERE ***"
-    return 0
+    # This code is necessary for achieving admissibility
+    foodList : list[Coordinate] =  deepcopy(_foodGrid.asList())
+    try:
+        foodList.remove(position)
+    except ValueError:
+        pass
+    # This algorithm is much like the cornerHeuristic.
+    # But sometimes going immediately to the nearest corner will result in an overestimation of cost. e.g:
+    # Given states [1, 8, 16, 17] and starting state 6 the corner heuristic will get score 15:
+    #   6 > 8 > 1 > 16 > 17 while the optimal path is 1 > 8 > 16 > 17 with cost 21.
+    # The estimated cost exceeds the optimal cost -> not admissible.
+    # My solutions calculates the manhattan score for different choices of first food pallet.
+    # in the example the the result for N is 2 will be [21, 25] we will then return the minimum value.
+    # This algorithm does not ensure admissibility for larger stateSpaces. This is a fundamental flaw of the current heuristic.
+    # This is because trying to calculate the minimum Manhattan Distance is a search problem in itself.
+    # This algorithm technically does a bunch of greedy searches in a stateSpace without walls -> path not optimal -> not admissible.
+    # But, because we now that the stateSpace does contain walls, we can confidently say that the Manhattan distance will in total be an underestimation of the optimal path.
+    # increasing N seemingly results in a less optimal search. My current hypothesis is that this is caused because the state Space does in fact contains walls. 
+    manhattanDistances : list[int] = []
+    for potentialStart in getNNearestFoodPallets(position, foodList, 2):
+        distance = util.manhattanDistance(position, potentialStart)
+        foodListCopy : list[Coordinate] = deepcopy(foodList)
+        foodListCopy.remove(potentialStart)
+        manhattanDistances.append(distance + getCumulativeManhattanDistance(potentialStart, foodListCopy))
+    return min(manhattanDistances, default=0)
+
+
+def getNNearestFoodPallets(position: Coordinate, _foodList : list[Coordinate], n : int) -> list[Coordinate]:
+    """Return the first N nearest coordinates from the given coordinate"""
+    foodList = deepcopy(_foodList)
+    foodList.sort(key= lambda coord : util.manhattanDistance(position, coord))
+    return foodList[:n]
+
+def getCumulativeManhattanDistance(startPosition : Coordinate, _foodList : list[Coordinate]) -> list[Coordinate]:
+    currentPosition : Coordinate = startPosition
+    foodList : list[Coordinate] = deepcopy(_foodList)
+    manhattanDistance : int = 0
+    foodListLength : int = len(foodList)
+    while (len(foodList) > 0):
+        currentSmallestDistance : int = None
+        nearestFoodPallet : Coordinate = None
+        for foodCoordinate in foodList:
+            distance : int = util.manhattanDistance(foodCoordinate, currentPosition)
+            if (currentSmallestDistance is None or currentSmallestDistance > distance):
+                currentSmallestDistance = distance
+                nearestFoodPallet = foodCoordinate
+        manhattanDistance += currentSmallestDistance
+        foodList.remove(nearestFoodPallet)
+        currentPosition = nearestFoodPallet
+    return manhattanDistance
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
