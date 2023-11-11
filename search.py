@@ -89,15 +89,23 @@ def depthFirstSearch(problem: SearchProblem) -> list[Directions]:
     To get started, you might want to try some of these simple commands to
     understand the search problem that is being passed in:
     """
-
-    print("Start:", problem.getStartState())
-    print("Is the start a goal?", problem.isGoalState(problem.getStartState()))
-    print("Start's successors:", problem.getSuccessors(problem.getStartState()))
-    state : State = (problem.getStartState(),'',0)
-    moves : list[Directions]  = dfsHelper(state, problem, set())[0]
-    moves.pop() # Last move is always gibberish
-    moves.reverse() # Moves are returned in reverse order
-    return moves
+    pendingStates : util.Stack = util.Stack()
+    exploredStates : set[any] = set()
+    startState : StateWithParent = (problem.getStartState(),'',0, None)
+    pendingStates.push(startState)
+    resultState : StateWithParent = None
+    while (not pendingStates.isEmpty()):
+        currentState : State = pendingStates.pop()
+        exploredStates.add(currentState[0])
+        if (problem.isGoalState(currentState[0])):
+            resultState = currentState
+            break
+        for successorState in problem.getSuccessors(currentState[0]):
+            if (successorState[0] in exploredStates):
+                continue
+            successorStateWithParent : StateWithParent = (successorState[0], successorState[1], successorState[2], currentState)
+            pendingStates.push(successorStateWithParent)
+    return stateWithParentToDirections(resultState)
 
 def breadthFirstSearch(problem) -> list[Directions]:
     """Search the shallowest nodes in the search tree first."""
@@ -164,16 +172,16 @@ def dfsHelper(state : State, problem, exploredStates : set[Coordinate]) -> Tuple
 
 
 def directionMapper(directionString : str) -> Directions:
-    direction: Directions
-    if (directionString == "South"):
-        direction = Directions.SOUTH
-    elif (directionString == "West"):
-        direction = Directions.WEST
-    elif (directionString == "North"):
-        direction = Directions.NORTH
-    else:
-        direction = Directions.EAST
-    return direction
+    if (Directions.NORTH is directionString):
+        return Directions.NORTH
+    elif (Directions.EAST is directionString):
+        return Directions.EAST
+    elif (Directions.SOUTH is directionString):
+        return Directions.SOUTH
+    elif (Directions.WEST is directionString):
+        return Directions.WEST
+    elif (Directions.STOP is directionString):
+        return Directions.STOP
 
 def stateWithParentToDirections(state : StateWithParent) -> list[Directions]:
     """Given a certain state that has parent information. back-track through the tree to the origin and record all moves to a list.
@@ -188,8 +196,7 @@ def stateWithParentToDirections(state : StateWithParent) -> list[Directions]:
     currentState : StateWithParent = state
     moves : list[Directions] = []
     while (parent is not None): # as long as there is parent information we will keep the loop going.
-        if (currentState[1] in ["North", "East", "West", "South"]): #If the direction is gibberish we won't consider it for recording. 
-            moves.insert(0, directionMapper(currentState[1])) #insert the move at the beginning of the list.
+        moves.insert(0, currentState[1]) #insert the move at the beginning of the list.
         currentState = parent # the next state we will check will be our current parent.
         parent = currentState[3] # the new nex parent will be the parent of the new next state.
     return moves
