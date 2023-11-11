@@ -114,16 +114,17 @@ def breadthFirstSearch(problem) -> list[Directions]:
     exploredStates : set[Coordinate] = set() # We use this to make sure we do not re-explore states
     state : StateWithParent = (problem.getStartState(),'',0, None) # The state with parent variable ensures we can find our way from the solution to the origin without using recursion
     resultState : StateWithParent = None # When a goalState is found this will be set with that goalState.
-    queue.push(state) # We start our search by pushing the startState as the first state to check.
+    queue.push(state)
+    exploredStates.add(state[0]) # We start our search by pushing the startState as the first state to check.
     while (not queue.isEmpty()): 
         state = queue.pop() # We examine the state that was pushed the least recently on the queue
-        exploredStates.add(state[0]) # We add this state to our exploredStates.
         if (problem.isGoalState(state[0])): # If we have arrived at our goal state, set the resultState variable and break out of the loop.
             resultState = state
             break
         for newState in problem.getSuccessors(state[0]): # Otherwise we loop over all possible states that can be reached from the currentState.
             if (not newState[0] in exploredStates): # If the state is unexplored we enqueue for our bfs.
                 newStateWithParent = (newState[0], newState[1], newState[2], state) # we add the currentState as the parent of the new state. this way we can follow the propagation of the algorithm.
+                exploredStates.add(newState[0]) # We add this state to our exploredStates.
                 queue.push(newStateWithParent)
     moves = stateWithParentToDirections(resultState) # this function allows us to back-track a certain position to our origin and write the moves to a list.
     return moves
