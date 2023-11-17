@@ -4,5 +4,5 @@ import utilities.utils as utils
 
 
 def mse(input_tensor: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-    """TODO: implement this method"""
-    return utils.not_implemented()
+    return (target.square_ - input_tensor.square_).sqrt_
+
