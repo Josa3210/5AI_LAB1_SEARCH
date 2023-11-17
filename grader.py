@@ -48,7 +48,7 @@ def test_image_matrix():
 def test_tensor_forward():
     input_tensor = torch.FloatTensor([0.2, 0.1, 0.5, 0.9]).to(options.device)
     weights = torch.FloatTensor([0.4, -0.1, 0.4, -0.5]).to(options.device)
-    output = tensors.tensor_forward(weights, input_tensor)
+    output = tensors.lin_layer_forward(weights, input_tensor)
     if output == not_implemented():
         print("tensor_forward not yet implemented... (0/1)")
     elif output.shape != torch.Size([]):

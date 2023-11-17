@@ -17,7 +17,8 @@ def create_image(options: Options) -> torch.Tensor:
 
 def lin_layer_forward(weights: torch.Tensor, random_image: torch.Tensor) -> torch.Tensor:
     """TODO: implement this method"""
-    return not_implemented()
+    return torch.sum(torch.transpose(weights, -1 , 0)*random_image)
+
 
 
 def tensor_network():
