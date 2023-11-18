@@ -19,7 +19,7 @@ def create_image(options: Options) -> torch.Tensor:
 
 
 def lin_layer_forward(weights: torch.Tensor, random_image: torch.Tensor) -> torch.Tensor:
-    newTensor = torch.transpose(weights, -1, 0)*random_image
+    newTensor = torch.transpose(weights, -1, 0) * random_image
     return sum(newTensor)
 
 
@@ -28,9 +28,11 @@ def tensor_network():
     print(f"The target is: {target.item():.2f}")
     plot_tensor(target, "Target")
 
-    input_tensor = torch.FloatTensor([0.4, 0.8, 0.5, 0.3]).to(options.device)
-    weights = torch.FloatTensor([0.1, -0.5, 0.9, -1]).to(options.device)
+    input_tensor: torch.Tensor = torch.FloatTensor([0.4, 0.8, 0.5, 0.3]).to(options.device)
+    weights: torch.Tensor = torch.FloatTensor([0.1, -0.5, 0.9, -1]).to(options.device)
     """START TODO:  ensure that the tensor 'weights' saves the computational graph and the gradients after backprop"""
+
+    weights.requires_grad = True
 
     """END TODO"""
 
@@ -49,16 +51,15 @@ def tensor_network():
     print(f"The current weights are: {weights}")
 
     """START TODO: the loss needs to be backpropagated"""
-
+    loss.backward()
     """END TODO"""
 
     print(f"The gradients are: {weights.grad}")
     """START TODO: implement the update step with a learning rate of 0.5"""
     # use tensor operations, recall the following formula we've seen during class: x <- x - alpha * x'
-
+    weights = (weights - loss.item() * weights.grad.data)
     """END TODO"""
     print(f"The new weights are: {weights}\n")
-
     # What happens if we forward through our layer again?
     output = lin_layer_forward(weights, input_tensor)
     print(f"Output value: {output.item(): .2f}")
