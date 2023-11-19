@@ -21,14 +21,15 @@ class LinearRegression(nn.Module):
     def __init__(self):
         super().__init__()
         """START TODO: replace None with a Linear layer"""
-        self.linear_layer = None
+        self.linear_layer = nn.Linear(1, 1, True)
         """END TODO"""
 
     def forward(self, x: torch.Tensor):
         """START TODO: forward the tensor x through the linear layer and return the outcome (replace None)"""
-        x = None
+        x = self.linear_layer(x)
         """END TODO"""
         return x
+
 
 class Classifier(nn.Module):
     def __init__(self, options: ClassificationOptions):

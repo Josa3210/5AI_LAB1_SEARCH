@@ -14,5 +14,5 @@ class LinearRegressionOptions(Options):
         self.noise_house_data = 50000
 
         # hyperparameters
-        self.lr = 1
-        self.num_epochs = 10
+        self.lr = 0.0001
+        self.num_epochs = 20
