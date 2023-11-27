@@ -9,6 +9,6 @@ class ClassificationOptions(Options):
         self.batch_size_train = 64
 
         # hyperparameters
-        self.lr = 1
+        self.lr = 0.001
         self.num_epochs = 10
-        self.hidden_sizes = []
+        self.hidden_sizes = [784, 784, 784, 10]

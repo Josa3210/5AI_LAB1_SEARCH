@@ -16,12 +16,12 @@ if __name__ == "__main__":
 
     """START TODO: fill in the missing parts"""
     # create a Classifier instance named model
-    model = None
+    model = Classifier(options)
     model.to(options.device)
     # define the opimizer
-
+    optimizer = torch.optim.SGD(model.parameters(), options.lr)
     # train the model
-
+    utils.train_classification_model(model, optimizer, dataset, options)
     """END TODO"""
 
     # Test the model
