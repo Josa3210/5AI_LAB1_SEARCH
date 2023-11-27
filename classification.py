@@ -14,15 +14,14 @@ if __name__ == "__main__":
     dataset = MNISTDataset(options)
     dataset.show_examples()
 
-    """START TODO: fill in the missing parts"""
     # create a Classifier instance named model
-    model = None
+    model = Classifier(options)
     model.to(options.device)
     # define the opimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
     # train the model
-
-    """END TODO"""
+    train_classification_model(model, optimizer, dataset, options)
 
     # Test the model
     print("The Accuracy of the model is: ")

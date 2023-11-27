@@ -99,7 +99,7 @@ def test_lin_reg_plot(model: LinearRegression, test_data: DataLoader, options: L
 def train_classification_model(model: Classifier, optimizer: torch.optim.Optimizer,
                                dataset: MNISTDataset, options: ClassificationOptions):
     """START TODO: select an appropriate criterion (loss function)"""
-    criterion = None
+    criterion = nn.CrossEntropyLoss()
     """END TODO"""
     for epoch in range(options.num_epochs):
         running_loss = 0
@@ -111,14 +111,17 @@ def train_classification_model(model: Classifier, optimizer: torch.optim.Optimiz
             # it should become (batch_size, -1), where the size -1 is inferred from other dimensions
             # (see TORCH.TENSOR.VIEW on the PyTorch documentation site)
 
+            flatten = nn.Flatten()
+            x = flatten(x)
+            out = model(x)
             # calculate the loss, use your previously defined criterion
-            loss = None
+            loss = criterion(out, y)
             # zero out all gradients
-
+            optimizer.zero_grad()
             # propagate the loss backward
-
+            loss.backward()
             # use your optimizer to perform an update step
-
+            optimizer.step()
             """END TODO"""
             running_loss += loss.item()
         print(f'epoch [{epoch + 1}/{options.num_epochs}]: ', end="")

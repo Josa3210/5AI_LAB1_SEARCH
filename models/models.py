@@ -38,21 +38,26 @@ class Classifier(nn.Module):
             Use options.hidden_sizes to store all hidden sizes, (for simplicity, you might want to 
             include the input and output as well).
         """
+        options.hidden_sizes.append(28*28)
+        options.hidden_sizes.append(512)
+        options.hidden_sizes.append(512)
+        options.hidden_sizes.append(10)
         self.layer1 = nn.Sequential(
-            
+            nn.Linear(options.hidden_sizes[0], options.hidden_sizes[1]),
+            nn.ReLU(),
         )
         self.layer2 = nn.Sequential(
-
+            nn.Linear(options.hidden_sizes[1], options.hidden_sizes[2]),
+            nn.ReLU(),
         )
         self.layer3 = nn.Sequential(
-
+            nn.Linear(options.hidden_sizes[2], options.hidden_sizes[3]),
+            nn.ReLU()
         )
         """END TODO"""
 
     def forward(self, x: torch.Tensor):
-        """START TODO: forward tensor x through all layers."""
-
-        """END TODO"""
+        x = self.layer3(self.layer2(self.layer1(x)))
         return x
 
 
