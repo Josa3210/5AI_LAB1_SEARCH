@@ -31,6 +31,8 @@ import mdp, util
 from learningAgents import ValueEstimationAgent
 import collections
 
+
+
 class ValueIterationAgent(ValueEstimationAgent):
     """
         * Please read learningAgents.py before reading this.*
@@ -60,9 +62,21 @@ class ValueIterationAgent(ValueEstimationAgent):
         self.runValueIteration()
 
     def runValueIteration(self):
+        coord = tuple[int, int]
         # Write value iteration code here
         "*** YOUR CODE HERE ***"
-
+        for i in range(self.iterations):
+            newValues = self.values.copy()
+            for state in self.mdp.getStates():
+                state : coord
+                values : list[float] = []
+                for action in self.mdp.getPossibleActions(state):
+                    values.append(self.computeQValueFromValues(state, action))
+                if len(values) == 0:
+                    newValues[state] = 0
+                else:
+                    newValues[state] = max(values)
+            self.values = newValues
 
     def getValue(self, state):
         """
@@ -77,7 +91,14 @@ class ValueIterationAgent(ValueEstimationAgent):
           value function stored in self.values.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        coord = tuple[int, int]
+        statesAndProps : list[tuple[coord, float]] = self.mdp.getTransitionStatesAndProbs(state,action)
+        counter = 0
+        for stateAndProp in statesAndProps:
+            nextState = stateAndProp[0]
+            probability = stateAndProp[1]
+            counter += probability*(self.mdp.getReward(state, action, nextState) + self.discount * self.getValue(nextState))    
+        return counter
 
     def computeActionFromValues(self, state):
         """
@@ -89,7 +110,25 @@ class ValueIterationAgent(ValueEstimationAgent):
           terminal state, you should return None.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        values : list[tuple[float, str]] = []
+        actions : list[str] = self.mdp.getPossibleActions(state)
+        if len(actions) == 0:
+            return None
+        for action in actions:
+            if action == "north":
+                nextState = (state[0], state[1] + 1)
+            elif action == "west":
+                nextState = (state[0] - 1, state[1])
+            elif action == "east":
+                nextState = (state[0] + 1, state[1])
+            elif action == "south":
+                nextState = (state[0], state[1] - 1)
+            elif action == "exit":
+                return action
+            values.append((self.values[nextState], action))
+        maximum : tuple[float, str] = max(values, key= lambda element : element[0])
+        return maximum
+
 
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
