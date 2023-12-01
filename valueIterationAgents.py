@@ -62,19 +62,15 @@ class ValueIterationAgent(ValueEstimationAgent):
         self.runValueIteration()
 
     def runValueIteration(self):
-        coord = tuple[int, int]
         # Write value iteration code here
         "*** YOUR CODE HERE ***"
         for i in range(self.iterations):
             newValues = self.values.copy()
             for state in self.mdp.getStates():
-                state : coord
-                values : list[float] = []
+                values = []
                 for action in self.mdp.getPossibleActions(state):
                     values.append(self.computeQValueFromValues(state, action))
-                if len(values) == 0:
-                    newValues[state] = 0
-                else:
+                if len(values) != 0:
                     newValues[state] = max(values)
             self.values = newValues
 
@@ -91,8 +87,7 @@ class ValueIterationAgent(ValueEstimationAgent):
           value function stored in self.values.
         """
         "*** YOUR CODE HERE ***"
-        coord = tuple[int, int]
-        statesAndProps : list[tuple[coord, float]] = self.mdp.getTransitionStatesAndProbs(state,action)
+        statesAndProps  = self.mdp.getTransitionStatesAndProbs(state,action)
         counter = 0
         for stateAndProp in statesAndProps:
             nextState = stateAndProp[0]
@@ -110,23 +105,14 @@ class ValueIterationAgent(ValueEstimationAgent):
           terminal state, you should return None.
         """
         "*** YOUR CODE HERE ***"
-        values : list[tuple[float, str]] = []
-        actions : list[str] = self.mdp.getPossibleActions(state)
-        if len(actions) == 0:
+        values = []
+        actions = self.mdp.getPossibleActions(state)
+        if self.mdp.isTerminal(state):
             return None
+        values = util.Counter()
         for action in actions:
-            if action == "north":
-                nextState = (state[0], state[1] + 1)
-            elif action == "west":
-                nextState = (state[0] - 1, state[1])
-            elif action == "east":
-                nextState = (state[0] + 1, state[1])
-            elif action == "south":
-                nextState = (state[0], state[1] - 1)
-            elif action == "exit":
-                return action
-            values.append((self.values[nextState], action))
-        maximum : tuple[float, str] = max(values, key= lambda element : element[0])
+            values[action] = self.computeQValueFromValues(state, action)
+        maximum = values.argMax()
         return maximum
 
 
