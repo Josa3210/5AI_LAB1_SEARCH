@@ -4,7 +4,7 @@
 # educational purposes provided that (1) you do not distribute or publish
 # solutions, (2) you retain this notice, and (3) you provide clear
 # attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
-# 
+#
 # Attribution Information: The Pacman AI projects were developed at UC Berkeley.
 # The core projects and autograders were primarily created by John DeNero
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
@@ -21,18 +21,18 @@ import re
 import sys
 import projectParams
 import random
-
 random.seed(0)
 try:
     from pacman import GameState
 except:
     pass
 
-
 # register arguments and set default values
 def readCommand(argv):
-    parser = optparse.OptionParser(description='Run public tests on student code')
-    parser.set_defaults(generateSolutions=False, edxOutput=False, gsOutput=False, muteOutput=False, printTestCase=False, noGraphics=False)
+    parser = optparse.OptionParser(
+        description='Run public tests on student code')
+    parser.set_defaults(generateSolutions=False, edxOutput=False, gsOutput=False,
+                        muteOutput=False, printTestCase=False, noGraphics=False)
     parser.add_option('--test-directory',
                       dest='testRoot',
                       default='test_cases',
@@ -109,26 +109,27 @@ def setModuleName(module, filename):
 
     for i in dir(module):
         o = getattr(module, i)
-        if hasattr(o, '__file__'): continue
+        if hasattr(o, '__file__'):
+            continue
 
         if type(o) == functionType:
             setattr(o, '__file__', filename)
         elif type(o) == classType:
             setattr(o, '__file__', filename)
             # TODO: assign member __file__'s?
-        # print(i, type(o))
+        # print i, type(o)
 
 
-# from cStringIO import StringIO
+#from cStringIO import StringIO
 
 def loadModuleString(moduleSource):
     # Below broken, imp doesn't believe its being passed a file:
     #    ValueError: load_module arg#2 should be a file or None
     #
-    # f = StringIO(moduleCodeDict[k])
-    # tmp = imp.load_module(k, f, k, (".py", "r", imp.PY_SOURCE))
+    #f = StringIO(moduleCodeDict[k])
+    #tmp = imp.load_module(k, f, k, (".py", "r", imp.PY_SOURCE))
     tmp = imp.new_module(k)
-    exec(moduleCodeDict[k] in tmp.__dict__)
+    exec(moduleCodeDict[k], tmp.__dict__)
     setModuleName(tmp, k)
     return tmp
 
@@ -194,10 +195,10 @@ def printTest(testDict, solutionDict):
     pp = pprint.PrettyPrinter(indent=4)
     print("Test case:")
     for line in testDict["__raw_lines__"]:
-        print("   |", line)
+        print(("   |", line))
     print("Solution:")
     for line in solutionDict["__raw_lines__"]:
-        print("   |", line)
+        print(("   |", line))
 
 
 def runTest(testName, moduleDict, printTestCase=False, display=None):
@@ -227,7 +228,8 @@ def runTest(testName, moduleDict, printTestCase=False, display=None):
 # returns all the tests you need to run in order to run question
 def getDepends(testParser, testRoot, question):
     allDeps = [question]
-    questionDict = testParser.TestParser(os.path.join(testRoot, question, 'CONFIG')).parse()
+    questionDict = testParser.TestParser(
+        os.path.join(testRoot, question, 'CONFIG')).parse()
     if 'depends' in questionDict:
         depends = questionDict['depends'].split()
         for d in depends:
@@ -235,14 +237,15 @@ def getDepends(testParser, testRoot, question):
             allDeps = getDepends(testParser, testRoot, d) + allDeps
     return allDeps
 
-
 # get list of questions to grade
 def getTestSubdirs(testParser, testRoot, questionToGrade):
-    problemDict = testParser.TestParser(os.path.join(testRoot, 'CONFIG')).parse()
+    problemDict = testParser.TestParser(
+        os.path.join(testRoot, 'CONFIG')).parse()
     if questionToGrade != None:
         questions = getDepends(testParser, testRoot, questionToGrade)
         if len(questions) > 1:
-            print('Note: due to dependencies, the following tests will be run: %s' % ' '.join(questions))
+            print(('Note: due to dependencies, the following tests will be run: %s' %
+                  ' '.join(questions)))
         return questions
     if 'order' in problemDict:
         return problemDict['order'].split()
@@ -269,14 +272,16 @@ def evaluate(generateSolutions, testRoot, moduleDict, exceptionMap=ERROR_HINT_MA
             continue
 
         # create a question object
-        questionDict = testParser.TestParser(os.path.join(subdir_path, 'CONFIG')).parse()
+        questionDict = testParser.TestParser(
+            os.path.join(subdir_path, 'CONFIG')).parse()
         questionClass = getattr(testClasses, questionDict['class'])
         question = questionClass(questionDict, display)
         questionDicts[q] = questionDict
 
         # load test cases into question
-        tests = filter(lambda t: re.match('[^#~.].*\.test\Z', t), os.listdir(subdir_path))
-        tests = map(lambda t: re.match('(.*)\.test\Z', t).group(1), tests)
+        tests = [t for t in os.listdir(
+            subdir_path) if re.match('[^#~.].*\.test\Z', t)]
+        tests = [re.match('(.*)\.test\Z', t).group(1) for t in tests]
         for t in sorted(tests):
             test_file = os.path.join(subdir_path, '%s.test' % t)
             solution_file = os.path.join(subdir_path, '%s.solution' % t)
@@ -300,13 +305,11 @@ def evaluate(generateSolutions, testRoot, moduleDict, exceptionMap=ERROR_HINT_MA
                         return lambda grades: printTest(testDict, solutionDict) or testCase.execute(grades, moduleDict, solutionDict)
                     else:
                         return lambda grades: testCase.execute(grades, moduleDict, solutionDict)
-
             question.addTestCase(testCase, makefun(testCase, solution_file))
 
         # Note extra function is necessary for scoping reasons
         def makefun(question):
             return lambda grades: question.execute(grades)
-
         setattr(sys.modules[__name__], q, makefun(question))
         questions.append((q, question.getMaxPoints()))
 
@@ -350,12 +353,15 @@ if __name__ == '__main__':
     moduleDict = {}
     for cp in codePaths:
         moduleName = re.match('.*?([^/]*)\.py', cp).group(1)
-        moduleDict[moduleName] = loadModuleFile(moduleName, os.path.join(options.codeRoot, cp))
+        moduleDict[moduleName] = loadModuleFile(
+            moduleName, os.path.join(options.codeRoot, cp))
     moduleName = re.match('.*?([^/]*)\.py', options.testCaseCode).group(1)
-    moduleDict['projectTestClasses'] = loadModuleFile(moduleName, os.path.join(options.codeRoot, options.testCaseCode))
+    moduleDict['projectTestClasses'] = loadModuleFile(
+        moduleName, os.path.join(options.codeRoot, options.testCaseCode))
 
     if options.runTest != None:
-        runTest(options.runTest, moduleDict, printTestCase=options.printTestCase, display=getDisplay(True, options))
+        runTest(options.runTest, moduleDict, printTestCase=options.printTestCase,
+                display=getDisplay(True, options))
     else:
         evaluate(options.generateSolutions, options.testRoot, moduleDict,
                  gsOutput=options.gsOutput,
