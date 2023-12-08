@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from project.chess_agents.agent import Agent
 from project.chess_utilities.utility import Utility
 import chess
 import chess.svg
@@ -10,9 +11,9 @@ def play_self():
     # Setup a clean board
     board = chess.Board()
     # Create the white and black agent
-    white_player = ExampleAgent(ExampleUtility(), 5.0)
+    white_player = Agent(Utility(), 5.0)
     white_player.name = "White Player"
-    black_player = ExampleAgent(ExampleUtility(), 5.0)
+    black_player = Agent(Utility(), 5.0)
     black_player.name = "Black Player"
 
     running = True
