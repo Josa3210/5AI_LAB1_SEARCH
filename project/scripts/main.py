@@ -11,3 +11,4 @@ if __name__ == "__main__":
     agent : MiniMaxAgent = MiniMaxAgent(utility=utility, time_limit_move=5.0)
     
     engine : UciEngine = UciEngine(name="ML bot", author="Neural Network Ninjas", agent=agent)
+    engine.engine_operation()
