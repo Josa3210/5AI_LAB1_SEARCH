@@ -6,3 +6,9 @@ project/chess_engines/__pycache__/
 project/chess_utilities/__pycache__/
 
 project/examples/__pycache__/
+
+__pycache__/
+
+.vscode/
+
+*.cache
