@@ -3,4 +3,16 @@ __pycache__/
 
 .idea/
 
+<<<<<<< Updated upstream
 .vscode/
+=======
+project/chess_utilities/__pycache__/
+
+project/examples/__pycache__/
+
+.idea/
+
+options/
+
+utilities/
+>>>>>>> Stashed changes
