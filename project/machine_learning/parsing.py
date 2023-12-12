@@ -50,11 +50,13 @@ class DataParser():
                 game = chess.pgn.read_game(file)
         print(f"Data parser read in {len(games)} games.\nStart reading in boardStates")
         boards : list[chess.Board] = []
-        for game in games:
+        for i, game in enumerate(games):
             board : chess.Board = game.board()
             for move in game.mainline_moves():
                 board.push(move)
                 boards.append(deepcopy(board))
+            if (i + 1) % 100 == 0:
+                print(f"Read {i + 1} out of {len(games)} games for extracting positions")
         print(f"Read in {len(boards)} different positions.\nStarting stockfish evaluation")
         with open(self.cachedFile, 'w') as cacheFile:
             counter = 0
@@ -90,8 +92,10 @@ class DataParser():
     
     def evaluateUsingStockFish(board: chess.Board) -> float:
         with chess.engine.SimpleEngine.popen_uci("project/chess_engines/stockfish/stockfish-windows-x86-64-avx2.exe") as engine:
-            info = engine.analyse(board, limit=chess.engine.Limit(time=1.0, depth=4))
-            return info["score"].white().score()/100.0
+            info = engine.analyse(board, limit=chess.engine.Limit(time=0.1, depth=3))
+            
+            pawnScore =  info["score"].white().score(mate_score=100000)/100.0
+            return (2/(1+pow(10, -pawnScore/4))) - 1
 
 
     
