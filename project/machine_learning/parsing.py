@@ -59,15 +59,16 @@ class DataParser():
                 print(f"Read {i + 1} out of {len(games)} games for extracting positions")
         print(f"Read in {len(boards)} different positions.\nStarting stockfish evaluation")
         with open(self.cachedFile, 'w') as cacheFile:
-            counter = 0
-            for board in boards:
-                fenString = board.fen()
-                value = DataParser.evaluateUsingStockFish(board)
-                cacheFile.write(f"{fenString},{value}\n")
-                counter += 1
-                if counter % 10 == 0:
-                    print(f"Read in and evaluated {counter} out of {len(boards)} positions.")
-                    cacheFile.flush()
+            with chess.engine.SimpleEngine.popen_uci("project/chess_engines/stockfish/stockfish-windows-x86-64-avx2.exe") as engine:
+                counter = 0
+                for board in boards:
+                    fenString = board.fen()
+                    value = DataParser.evaluateUsingStockFish(board, engine= engine)
+                    cacheFile.write(f"{fenString},{value}\n")
+                    counter += 1
+                    if counter % 500 == 0:
+                        print(f"Read in and evaluated {counter} out of {len(boards)} positions.")
+                        cacheFile.flush()
         print("Evaluated all positions, data is now accessible via self.values")
         
     def values(self) -> Generator[tuple[chess.Board, float], None, None]:
@@ -90,12 +91,14 @@ class DataParser():
             self.dataSet = ChessDataSet(self.values())
         return DataLoader(dataset=self.dataSet, batch_size=batchSize, shuffle=shuffle)
     
-    def evaluateUsingStockFish(board: chess.Board) -> float:
-        with chess.engine.SimpleEngine.popen_uci("project/chess_engines/stockfish/stockfish-windows-x86-64-avx2.exe") as engine:
-            info = engine.analyse(board, limit=chess.engine.Limit(time=0.1, depth=3))
-            
-            pawnScore =  info["score"].white().score(mate_score=100000)/100.0
-            return (2/(1+pow(10, -pawnScore/4))) - 1
-
+    def evaluateUsingStockFish(board: chess.Board, engine: chess.engine.SimpleEngine | None = None) -> float:
+        if engine is None:
+            with chess.engine.SimpleEngine.popen_uci("project/chess_engines/stockfish/stockfish-windows-x86-64-avx2.exe") as new_engine:
+                info = new_engine.analyse(board, limit=chess.engine.Limit(time=0.1, depth=3))
+                pawnScore =  info["score"].white().score(mate_score=100000)/100.0
+                return (2/(1+pow(10, -pawnScore/4))) - 1
+        info = engine.analyse(board, limit=chess.engine.Limit(time=0.1, depth=3))
+        pawnScore =  info["score"].white().score(mate_score=100000)/100.0
+        return (2/(1+pow(10, -pawnScore/4))) - 1
 
     
