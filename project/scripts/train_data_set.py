@@ -6,7 +6,8 @@ import torch.optim
 from torch.optim import Optimizer, Adam
 from torch.utils.data import DataLoader
 
-from project.machine_learning.neural_network_heuristic import NeuralNetworkHeuristic, SimpleNNHeuristic
+from project.machine_learning.neural_network_heuristic import NeuralNetworkHeuristic
+from project.machine_learning.neural_network_heuristic2 import NeuralNetworkHeuristic2
 from project.machine_learning.parsing import DataParser
 
 
@@ -39,7 +40,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
                 batchLoss = reportLoss / reportingPeriod
                 reportLoss = 0
                 # print(f"Current running loss: {runningLoss}")
-                print(f"Average loss over last {reportingPeriod} batches: {round(batchLoss,5)} ")
+                print(f"Average loss over last {reportingPeriod} batches: {round(batchLoss, 5)} ")
         print(f"Finished training for epoch {i + 1}")
         testLoss = 0
         for j, data in enumerate(testDataLoader):
@@ -50,15 +51,15 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
             testLoss += loss.item()
             if j % 200:
                 percentage = floor(j / len(testDataLoader) * 100)
-                print("Evaluating: {", "="*percentage, " "*(100-percentage), "}", end='\r')
-        print("Evaluation", " "*100)
-        print( f"Avg loss over the training data: {round(testLoss / len(testDataLoader),5)}")
+                print("Evaluating: {", "=" * percentage, " " * (100 - percentage), "}", end='\r')
+        print("Evaluation", " " * 100)
+        print(f"Avg loss over the training data: {round(testLoss / len(testDataLoader), 5)}")
         print("=====================================================================\n")
 
 
 if __name__ == '__main__':
     # TODO use the dataset to train a NeuralNetworkHeuristic, afterwards save it.
-    model = SimpleNNHeuristic()
+    model = NeuralNetworkHeuristic2()
     optimizer = Adam(model.parameters(), lr=0.00001)
     # optimizer = torch.optim.Adam()
     criterion: Criterion = nn.MSELoss()

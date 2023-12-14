@@ -13,14 +13,8 @@ class NeuralNetworkHeuristic(nn.Module):
         n_L1: int = 32
         n_L2: int = 8
         n_output: int = 1
-        self.layers: nn.Sequential = nn.Sequential(
-            nn.Linear(n_inputs, n_L1),
-            nn.ReLU(),
-            nn.Linear(n_L1, n_L2),
-            nn.ReLU(),
-            nn.Linear(n_L2, n_output),
-            nn.Tanh()
-        )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
+        self.layers: nn.Sequential = nn.Sequential(nn.Linear(n_inputs, n_L1), nn.ReLU(), nn.Linear(n_L1, n_L2), nn.ReLU(), nn.Linear(n_L2, n_output), nn.Tanh())  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         This is the function we call to train the model. This should not be called
