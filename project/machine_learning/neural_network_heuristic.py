@@ -47,7 +47,7 @@ class NeuralNetworkHeuristic(nn.Module):
         # Pion = 1, Loper = 2, Knight = 3, Toren = 4, Queen = 5, King = 6
         fenString: string = board.fen()
 
-        features: torch.Tensor = torch.zeros_([1, 65], dtype=torch.uint8)
+        features: torch.Tensor = torch.zeros_([65], dtype=torch.uint8)
 
         color: int = 1
         piece: int = 0
@@ -73,7 +73,7 @@ class NeuralNetworkHeuristic(nn.Module):
             # Number means x empty spaces
             if char.isnumeric():
                 for i in range(int(char)):
-                    features[0][pos] = 0
+                    features[pos] = 0
                     pos += 1
 
             # Not a number means there is a piece
@@ -102,9 +102,9 @@ class NeuralNetworkHeuristic(nn.Module):
                     case _:
                         piece = 0
 
-                features[0][pos] = color * piece
+                features[pos] = color * piece
                 pos += 1
 
-        features[0][pos] = turn
+        features[pos] = turn
 
         return features
