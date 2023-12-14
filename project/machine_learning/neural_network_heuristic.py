@@ -8,6 +8,7 @@ import numpy
 
 class NeuralNetworkHeuristic(nn.Module):
     def __init__(self) -> None:
+        super().__init__()
         n_inputs: int = 65
         n_L1: int = 32
         n_L2: int = 8
@@ -20,7 +21,6 @@ class NeuralNetworkHeuristic(nn.Module):
             nn.Linear(n_L2, n_output),
             nn.Tanh()
         )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         This is the function we call to train the model. This should not be called
@@ -38,7 +38,7 @@ class NeuralNetworkHeuristic(nn.Module):
         output: float = self.forward(features)[0]
         return output
 
-    def featureExtraction(self, board: chess.Board) -> torch.Tensor:
+    def featureExtraction(board: chess.Board) -> torch.Tensor:
         """
         This takes a board and converts it to the input of our neural network.
         """
@@ -47,7 +47,7 @@ class NeuralNetworkHeuristic(nn.Module):
         # Pion = 1, Loper = 2, Knight = 3, Toren = 4, Queen = 5, King = 6
         fenString: string = board.fen()
 
-        features: torch.Tensor = torch.zeros_([65], dtype=torch.uint8)
+        features: torch.Tensor = torch.zeros([65], dtype=torch.float32)
 
         color: int = 1
         piece: int = 0
@@ -68,8 +68,6 @@ class NeuralNetworkHeuristic(nn.Module):
 
         # Get the position out of fenString
         for char in positions:
-            print(char)
-
             # Number means x empty spaces
             if char.isnumeric():
                 for i in range(int(char)):
