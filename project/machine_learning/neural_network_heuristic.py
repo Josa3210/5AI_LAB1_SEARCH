@@ -5,19 +5,21 @@ from torch import nn
 import torch
 import numpy
 
+
 class NeuralNetworkHeuristic(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         pass
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         pass
-    
+
     def execute(self, board: chess.Board) -> float:
         pass
-    
+
     def featureExtraction(board: chess.Board) -> torch.Tensor:
         pass
+
 
 class SimpleNeuralNetworkHeuristic(NeuralNetworkHeuristic):
     def __init__(self) -> None:
@@ -44,6 +46,9 @@ class SimpleNeuralNetworkHeuristic(NeuralNetworkHeuristic):
         features: torch.Tensor = self.featureExtraction(board)
         output: float = self.forward(features)[0]
         return output
+
+    def getName(self) -> string:
+        return "SimpleHeuristic"
 
     def featureExtraction(board: chess.Board) -> torch.Tensor:
         """
@@ -138,6 +143,9 @@ class CanCaptureNeuralNetworkHeuristic(NeuralNetworkHeuristic):
         """
         output: torch.Tensor = self.layers.forward(x)
         return output
+
+    def getName(self) -> string:
+        return "canCaptureHeuristic"
 
     def execute(self, board: chess.Board) -> float:
         """

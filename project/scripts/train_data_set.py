@@ -1,4 +1,5 @@
 import os
+import time
 from math import floor
 from typing import Any, Type
 
@@ -61,10 +62,11 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
         print(
             f"Avg loss over the test data: {round(testLoss / len(testDataLoader), 5)}")
         print("=====================================================================\n")
-        torch.save(model, "project/data/simpleModel.pth")
+        torch.save(model, f"project/data/models/{model.getName()}")
+    torch.save(model, f"project/data/models/{model.getName()}_{round(testLoss / len(testDataLoader), 5)}")
 
 
-def collectData(folder_path: str, heuristic : Type[NeuralNetworkHeuristic]) -> ChessDataLoader:
+def collectData(folder_path: str, heuristic: Type[NeuralNetworkHeuristic]) -> ChessDataLoader:
     files = os.listdir(folder_path)
     dataParsers: [DataParser] = []
     for file in files:
@@ -72,7 +74,7 @@ def collectData(folder_path: str, heuristic : Type[NeuralNetworkHeuristic]) -> C
             dataParser = DataParser(filePath=folder_path + "/" + file)
             dataParser.parse()
             dataParsers.append(dataParser)
-    return ChessDataLoader(data_parsers=dataParsers, heuristic= heuristic)
+    return ChessDataLoader(data_parsers=dataParsers, heuristic=heuristic)
 
 
 if __name__ == '__main__':
@@ -93,6 +95,9 @@ if __name__ == '__main__':
     testDataLoader = collectData(validationFolderPath, model.__class__)
 
     print("Start training: \n")
+    startTime = time.perf_counter()
     train(model=model, optimizer=optimizer, criterion=criterion, numberOfEpochs=5,
           dataLoader=trainDataLoader, testDataLoader=testDataLoader)
+    endTime = time.perf_counter()
+    print(f"Time passed training: {endTime - startTime}")
     pass
