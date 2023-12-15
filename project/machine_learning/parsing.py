@@ -1,14 +1,17 @@
+import os
 from copy import deepcopy
 from math import tanh
-from typing import Generator
+from typing import Generator, Type
 
 import chess
-import chess.pgn
 import chess.engine
-import os
-from torch.utils.data import Dataset, DataLoader
-from project.machine_learning.neural_network_heuristic import SimpleNeuralNetworkHeuristic, CanCaptureNeuralNetworkHeuristic
+import chess.pgn
 import torch
+from torch.utils.data import DataLoader, Dataset
+
+from project.machine_learning.neural_network_heuristic import (
+    NeuralNetworkHeuristic,
+)
 
 boardTensor = torch.Tensor
 evaluationTensor = torch.Tensor
@@ -32,11 +35,12 @@ class ChessDataSet(Dataset):
         return len(self.labels)
 
 class ChessDataLoader():
-    def __init__(self, data_parsers: list["DataParser"], batch_size: int = 32) -> None:
+    def __init__(self, data_parsers: list["DataParser"], heuristic: Type[NeuralNetworkHeuristic], batch_size: int = 32) -> None:
         self.batch_size : int = batch_size
         self.data_size : int = sum([parser.size for parser in data_parsers])
         self.data : list[chessDataBatch] = None
         self.data_parsers = data_parsers
+        self.heuristic = heuristic
         
     def __iter__(self) -> Generator[chessDataTensor, None, None]:
         if self.data != None:
@@ -59,7 +63,7 @@ class ChessDataLoader():
         boardFeatures : list[boardTensor] = []
         evaluations : list[torch.Tensor] = []
         for board, evaluation in chessData:
-            boardFeature = NeuralNetworkHeuristic.featureExtraction(board)
+            boardFeature = self.heuristic.featureExtraction(board)
             boardFeatures.append(boardFeature)
             evaluations.append(torch.tensor(evaluation))
         evaluations = torch.stack(evaluations).unsqueeze(1)
@@ -76,7 +80,7 @@ class DataParser():
         self.cachedFile = filePath + ".cache"
         self.dataSet: ChessDataSet = None
         self.size = 0
-
+    
     def parse(self, overwriteCache=False) -> None:
         """
         Call this method to parse the file and hold it in memory.

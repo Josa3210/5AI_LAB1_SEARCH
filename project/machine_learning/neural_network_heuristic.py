@@ -5,8 +5,21 @@ from torch import nn
 import torch
 import numpy
 
+class NeuralNetworkHeuristic(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        pass
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        pass
+    
+    def execute(self, board: chess.Board) -> float:
+        pass
+    
+    def featureExtraction(board: chess.Board) -> torch.Tensor:
+        pass
 
-class SimpleNeuralNetworkHeuristic(nn.Module):
+class SimpleNeuralNetworkHeuristic(NeuralNetworkHeuristic):
     def __init__(self) -> None:
         super().__init__()
         n_inputs: int = 65
@@ -102,7 +115,7 @@ class SimpleNeuralNetworkHeuristic(nn.Module):
         return features
 
 
-class CanCaptureNeuralNetworkHeuristic(nn.Module):
+class CanCaptureNeuralNetworkHeuristic(NeuralNetworkHeuristic):
     def __init__(self) -> None:
         super().__init__()
         n_inputs: int = 5760

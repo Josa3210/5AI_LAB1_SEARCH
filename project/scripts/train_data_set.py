@@ -1,6 +1,6 @@
 import os
 from math import floor
-from typing import Any
+from typing import Any, Type
 
 import torch as t
 import torch.nn as nn
@@ -64,7 +64,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
         torch.save(model, "project/data/simpleModel.pth")
 
 
-def collectData(folder_path: str) -> ChessDataLoader:
+def collectData(folder_path: str, heuristic : Type[NeuralNetworkHeuristic]) -> ChessDataLoader:
     files = os.listdir(folder_path)
     dataParsers: [DataParser] = []
     for file in files:
@@ -72,7 +72,7 @@ def collectData(folder_path: str) -> ChessDataLoader:
             dataParser = DataParser(filePath=folder_path + "/" + file)
             dataParser.parse()
             dataParsers.append(dataParser)
-    return ChessDataLoader(data_parsers=dataParsers)
+    return ChessDataLoader(data_parsers=dataParsers, heuristic= heuristic)
 
 
 if __name__ == '__main__':
@@ -87,10 +87,10 @@ if __name__ == '__main__':
     validationFolderPath = "project/data/raw/validation"
 
     print("Loading in all training data:")
-    trainDataLoader = collectData(trainingFolderPath)
+    trainDataLoader = collectData(trainingFolderPath, model.__class__)
     print(f"Total amount of trainingdata batches: {len(trainDataLoader)}")
     print("Loading in test data:")
-    testDataLoader = collectData(validationFolderPath)
+    testDataLoader = collectData(validationFolderPath, model.__class__)
 
     print("Start training: \n")
     train(model=model, optimizer=optimizer, criterion=criterion, numberOfEpochs=5,
