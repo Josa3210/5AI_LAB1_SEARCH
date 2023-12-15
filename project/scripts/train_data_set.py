@@ -29,7 +29,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
             optimizer.zero_grad()
             outputs = model(inputs)
 
-            loss = criterion(outputs, torch.unsqueeze(targets, 1))
+            loss = criterion(outputs, targets)
             loss.backward()
 
             optimizer.step()
@@ -48,7 +48,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
             inputs, targets = data
 
             outputs = model(inputs)
-            loss = criterion(outputs, torch.unsqueeze(targets, 1))
+            loss = criterion(outputs, targets)
             testLoss += loss.item()
             if j % 200:
                 percentage = floor(j / len(testDataLoader) * 100)
