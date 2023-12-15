@@ -206,4 +206,4 @@ class CanCaptureNeuralNetworkHeuristic(NeuralNetworkHeuristic):
 
                 features[pos][piece][pieceAttacks] = 1
             pos += 1
-        return features
+        return torch.flatten(features)
