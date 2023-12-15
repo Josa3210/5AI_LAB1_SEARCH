@@ -59,7 +59,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
                       " " * (100 - percentage), "}", end='\r')
         print("Evaluation", " " * 110)
         print(
-            f"Avg loss over the training data: {round(testLoss / len(testDataLoader), 5)}")
+            f"Avg loss over the test data: {round(testLoss / len(testDataLoader), 5)}")
         print("=====================================================================\n")
         torch.save(model, "project/data/simpleModel.pth")
 

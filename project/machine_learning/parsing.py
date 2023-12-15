@@ -1,6 +1,6 @@
 import os
 from copy import deepcopy
-from math import tanh
+from math import floor, tanh
 from typing import Generator, Type
 
 import chess
@@ -57,7 +57,7 @@ class ChessDataLoader():
                 yield self.chessDataToTensor(currentBatch)
     
     def __len__(self):
-        return self.data_size
+        return floor(self.data_size/self.batch_size)
             
     def chessDataToTensor(self, chessData:  list[chessData]) -> chessDataTensor:
         boardFeatures : list[boardTensor] = []
