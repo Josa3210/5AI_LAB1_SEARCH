@@ -7,8 +7,7 @@ from torch.optim import Optimizer, Adam
 from torch.utils.data import DataLoader, Dataset, ConcatDataset
 import os
 
-from project.machine_learning.neural_network_heuristic import NeuralNetworkHeuristic
-from project.machine_learning.neural_network_heuristic2 import NeuralNetworkHeuristic2
+from project.machine_learning.neural_network_heuristic import SimpleNeuralNetworkHeuristic, CanCaptureNeuralNetworkHeuristic
 from project.machine_learning.parsing import DataParser
 
 
@@ -61,7 +60,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
 
 if __name__ == '__main__':
     # TODO use the dataset to train a NeuralNetworkHeuristic, afterwards save it.
-    model = NeuralNetworkHeuristic()
+    model = SimpleNeuralNetworkHeuristic()
     optimizer = Adam(model.parameters(), lr=0.00001)
     # optimizer = torch.optim.Adam()
     criterion: Criterion = nn.MSELoss()
