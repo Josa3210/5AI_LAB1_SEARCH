@@ -7,12 +7,10 @@ import torch as t
 import torch.nn as nn
 import torch.optim
 from torch.optim import Adam, Optimizer
-from torch.utils.data import ConcatDataset, DataLoader, Dataset
+from torch.utils.data import DataLoader
 
-from project.machine_learning.neural_network_heuristic import \
-    NeuralNetworkHeuristic
 from project.machine_learning.parsing import ChessDataLoader, DataParser
-from project.machine_learning.neural_network_heuristic import SimpleNeuralNetworkHeuristic, CanCaptureNeuralNetworkHeuristic
+from project.machine_learning.neural_network_heuristic import SimpleNeuralNetworkHeuristic, CanCaptureNeuralNetworkHeuristic, NeuralNetworkHeuristic
 
 
 class Criterion:
@@ -62,7 +60,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
         print(
             f"Avg loss over the test data: {round(testLoss / len(testDataLoader), 5)}")
         print("=====================================================================\n")
-        torch.save(model, f"project/data/models/{model.getName()}")
+        torch.save(model, f"project/data/models/{model.getName()}_temp")
     torch.save(model, f"project/data/models/{model.getName()}_{round(testLoss / len(testDataLoader), 5)}")
 
 
@@ -79,7 +77,7 @@ def collectData(folder_path: str, heuristic: Type[NeuralNetworkHeuristic]) -> Ch
 
 if __name__ == '__main__':
     # TODO use the dataset to train a NeuralNetworkHeuristic, afterwards save it.
-    model = SimpleNeuralNetworkHeuristic()
+    model = CanCaptureNeuralNetworkHeuristic()
     optimizer = Adam(model.parameters(), lr=0.00001)
     # optimizer = torch.optim.Adam()
     criterion: Criterion = nn.MSELoss()
@@ -90,14 +88,17 @@ if __name__ == '__main__':
 
     print("Loading in all training data:")
     trainDataLoader = collectData(trainingFolderPath, model.__class__)
-    print(f"Total amount of trainingdata batches: {len(trainDataLoader)}")
+    print(f"Total amount of trainingdata batches: {len(trainDataLoader)}\n")
     print("Loading in test data:")
     testDataLoader = collectData(validationFolderPath, model.__class__)
 
-    print("Start training: \n")
+    print("\nStart training: \n")
     startTime = time.perf_counter()
     train(model=model, optimizer=optimizer, criterion=criterion, numberOfEpochs=5,
           dataLoader=trainDataLoader, testDataLoader=testDataLoader)
     endTime = time.perf_counter()
-    print(f"Time passed training: {endTime - startTime}")
+    seconds = endTime - startTime
+    minutes = seconds / 60
+    seconds = seconds - minutes*60
+    print(f"Time passed training: {minutes} minutes {seconds} seconds")
     pass
