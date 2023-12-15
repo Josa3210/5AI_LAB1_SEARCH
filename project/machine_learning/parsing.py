@@ -41,20 +41,27 @@ class ChessDataLoader():
         self.data : list[chessDataBatch] = None
         self.data_parsers = data_parsers
         self.heuristic = heuristic
+        self.cuda = torch.cuda.is_available()
+        self.printed = False
         
     def __iter__(self) -> Generator[chessDataTensor, None, None]:
         if self.data != None:
             yield from self.data
             return
+        self.data = []
         for parser in self.data_parsers:
             currentBatch : list[chessData]= []
             for chessData in parser.values():
                 currentBatch.append(chessData)
                 if len(currentBatch) is self.batch_size:
-                    yield self.chessDataToTensor(currentBatch)
+                    dataTensor = self.chessDataToTensor(currentBatch)
+                    self.data.append(dataTensor)
+                    yield dataTensor
                     currentBatch = []
             if len(currentBatch) != 0:
-                yield self.chessDataToTensor(currentBatch)
+                dataTensor = self.chessDataToTensor(currentBatch)
+                self.data.append(dataTensor)
+                yield dataTensor
     
     def __len__(self):
         return floor(self.data_size/self.batch_size)
@@ -66,8 +73,15 @@ class ChessDataLoader():
             boardFeature = self.heuristic.featureExtraction(board)
             boardFeatures.append(boardFeature)
             evaluations.append(torch.tensor(evaluation))
-        evaluations = torch.stack(evaluations).unsqueeze(1)
-        return torch.stack(boardFeatures),  evaluations
+        evaluations : torch.Tensor = torch.stack(evaluations).unsqueeze(1)
+        boardFeatures : torch.Tensor = torch.stack(boardFeatures)
+        if self.cuda:
+            if not self.printed:
+                print("Found Cuda, transferring data")
+                self.printed = True
+            evaluations = evaluations.to(device='cuda')
+            boardFeatures = boardFeatures.to(device='cuda')
+        return boardFeatures,  evaluations
 
     
 class DataParser():
