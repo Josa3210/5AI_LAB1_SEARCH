@@ -7,7 +7,7 @@ import chess.pgn
 import chess.engine
 import os
 from torch.utils.data import Dataset, DataLoader
-from project.machine_learning.neural_network_heuristic import NeuralNetworkHeuristic
+from project.machine_learning.neural_network_heuristic import SimpleNeuralNetworkHeuristic, CanCaptureNeuralNetworkHeuristic
 import torch
 
 boardTensor = torch.Tensor
