@@ -6,6 +6,7 @@ from typing import Any, Type
 import torch as t
 import torch.nn as nn
 import torch.optim
+import torch.cuda
 from torch.optim import Adam, Optimizer
 from torch.utils.data import DataLoader
 
@@ -25,6 +26,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
         print("=====================================================================")
         runningLoss = 0
         reportLoss = 0
+        torch.gradient
         for j, data in enumerate(dataLoader):
             inputs, targets = data
             optimizer.zero_grad()
@@ -46,16 +48,17 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
                     f"Average loss over last {reportingPeriod} batches: {round(batchLoss, 5)} ")
         print(f"Finished training for epoch {i + 1}")
         testLoss = 0
-        for j, data in enumerate(testDataLoader):
-            inputs, targets = data
+        with torch.no_grad():
+            for j, data in enumerate(testDataLoader):
+                inputs, targets = data
 
-            outputs = model(inputs)
-            loss = criterion(outputs, targets)
-            testLoss += loss.item()
-            if j % 200:
-                percentage = floor(j / len(testDataLoader) * 100)
-                print("Evaluating: {", "=" * percentage,
-                      " " * (100 - percentage), "}", end='\r')
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+                testLoss += loss.item()
+                if j % 200:
+                    percentage = floor(j / len(testDataLoader) * 100)
+                    print("Evaluating: {", "=" * percentage,
+                        " " * (100 - percentage), "}", end='\r')
         print("Evaluation", " " * 110)
         print(
             f"Avg loss over the test data: {round(testLoss / len(testDataLoader), 5)}")
@@ -78,8 +81,10 @@ def collectData(folder_path: str, heuristic: Type[NeuralNetworkHeuristic]) -> Ch
 if __name__ == '__main__':
     # TODO use the dataset to train a NeuralNetworkHeuristic, afterwards save it.
     model = CanCaptureNeuralNetworkHeuristic()
+    if t.cuda.is_available():
+        print("Cuda was available, transferring data to GPU")
+        model.to(device='cuda')
     optimizer = Adam(model.parameters(), lr=0.00001)
-    # optimizer = torch.optim.Adam()
     criterion: Criterion = nn.MSELoss()
 
     # Specify the folder path you want to get filepaths from
