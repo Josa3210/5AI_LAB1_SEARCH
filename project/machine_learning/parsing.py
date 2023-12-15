@@ -10,9 +10,14 @@ from torch.utils.data import Dataset, DataLoader
 from project.machine_learning.neural_network_heuristic import NeuralNetworkHeuristic
 import torch
 
+boardTensor = torch.Tensor
+evaluationTensor = torch.Tensor
+chessData = tuple[chess.Board, float]
+chessDataTensor = tuple[boardTensor, torch.Tensor]
+chessDataBatch = list[chessDataTensor]
 
 class ChessDataSet(Dataset):
-    def __init__(self, dataGenerator: Generator[tuple[chess.Board, float], None, None]) -> None:
+    def __init__(self, dataGenerator: Generator[chessData, None, None]) -> None:
         super().__init__()
         self.data: list[chess.Board] = []
         self.labels: list[float] = []
@@ -20,13 +25,46 @@ class ChessDataSet(Dataset):
             self.data.append(board)
             self.labels.append(value)
 
-    def __getitem__(self, index) -> tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, index) -> chessDataTensor:
         return NeuralNetworkHeuristic.featureExtraction(self.data[index]), torch.tensor(self.labels[index])
 
     def __len__(self) -> int:
         return len(self.labels)
 
+class ChessDataLoader():
+    def __init__(self, data_parser: "DataParser", batch_size: int = 32) -> None:
+        self.batch_size : int = batch_size
+        self.data_size : int = data_parser.size
+        self.data : list[chessDataBatch] = None
+        self.data_parser = data_parser
+        
+    def __iter__(self) -> Generator[chessDataTensor, None, None]:
+        if self.data != None:
+            yield from self.data
+            return
+        currentBatch : list[chessData]= []
+        for chessData in self.data_parser.values():
+            currentBatch.append(chessData)
+            if len(currentBatch) is self.batch_size:
+                yield self.chessDataToTensor(currentBatch)
+                currentBatch = []
+        if len(currentBatch) != 0:
+            yield self.chessDataToTensor(currentBatch)
+    
+    def __len__(self):
+        return self.data_size
+            
+    def chessDataToTensor(self, chessData:  list[chessData]) -> chessDataTensor:
+        boardFeatures : list[boardTensor] = []
+        evaluations : list[torch.Tensor] = []
+        for board, evaluation in chessData:
+            boardFeature = NeuralNetworkHeuristic.featureExtraction(board)
+            boardFeatures.append(boardFeature)
+            evaluations.append(torch.tensor(evaluation))
+        evaluations = torch.stack(evaluations).unsqueeze(1)
+        return torch.stack(boardFeatures),  evaluations
 
+    
 class DataParser():
     """
     This class is the place to crunch large datasets into useable data for training.
@@ -36,6 +74,7 @@ class DataParser():
         self.filePath = filePath
         self.cachedFile = filePath + ".cache"
         self.dataSet: ChessDataSet = None
+        self.size = 0
 
     def parse(self, overwriteCache=False) -> None:
         """
@@ -44,10 +83,12 @@ class DataParser():
         """
         if not overwriteCache and os.path.exists(self.cachedFile):
             print(f"Found previous data, values are already available")
+            with open(self.cachedFile, 'rb') as file:
+                self.size = sum(1 for _ in file)
             return
 
         games: list[chess.pgn.Game] = []
-        with open(self.filePath) as file:
+        with open(self.filePath, encoding='utf-8') as file:
             game = chess.pgn.read_game(file)
             while game is not None:
                 games.append(game)
@@ -68,11 +109,14 @@ class DataParser():
                 for board in boards:
                     fenString = board.fen()
                     value = DataParser.evaluateUsingStockFish(board, engine=engine)
+                    if value is None:
+                        continue
                     cacheFile.write(f"{fenString},{value}\n")
                     counter += 1
                     if counter % 500 == 0:
                         print(f"Read in and evaluated {counter} out of {len(boards)} positions.")
                         cacheFile.flush()
+                self.size = counter
         print("Evaluated all positions, data is now accessible via self.values")
 
     def values(self) -> Generator[tuple[chess.Board, float], None, None]:
@@ -99,15 +143,13 @@ class DataParser():
                 except IndexError:
                     continue
 
-    def getDataLoader(self, batchSize: int, shuffle: bool = False) -> DataLoader:
-        if self.dataSet == None:
-            self.dataSet = ChessDataSet(self.values())
-        return DataLoader(dataset=self.dataSet, batch_size=batchSize, shuffle=shuffle)
+    def getDataLoader(self, batchSize: int, shuffle: bool = False) -> ChessDataLoader:
+        return ChessDataLoader(self, batch_size=batchSize)
 
     def evaluateUsingStockFish(board: chess.Board, engine: chess.engine.SimpleEngine | None = None) -> float:
         if engine is None:
             with chess.engine.SimpleEngine.popen_uci("project/chess_engines/stockfish/stockfish-windows-x86-64-avx2.exe") as new_engine:
-                info = new_engine.analyse(board, limit=chess.engine.Limit(time=0.1, depth=3))
+                info = new_engine.analyse(board, limit=chess.engine.Limit(time=0.2, depth=4))
                 pawnScore = info["score"].white().score(mate_score=100000) / 100.0
                 return (2 / (1 + pow(10, -pawnScore / 4))) - 1
         info = engine.analyse(board, limit=chess.engine.Limit(time=0.1, depth=3))
