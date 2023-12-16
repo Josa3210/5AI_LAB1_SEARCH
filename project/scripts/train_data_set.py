@@ -85,15 +85,21 @@ def collectData(folder_path: str, heuristic: Type[NeuralNetworkHeuristic], batch
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="DataTrainer", description="Train our model using datasets located in /project/data/raw")
-    parser.add_argument('-l', '--learning-rate', default=0.0001)
-    parser.add_argument('-b', '--batch-size', default=32)
+    parser.add_argument('-l', '--learning-rate', default=0.0001, type=float)
+    parser.add_argument('-b', '--batch-size', default=32, type=int)
+    parser.add_argument('-e', '--epochs', default=5, type=int)
+    parser.add_argument('--preload', default=None, type=str, help="Continue training on a previous model, value is location to model")
     args = parser.parse_args()
-    learningRate = float(args.learning_rate)
-    batchSize = int(args.batch_size)    
-    
-    print(f"The learning parameters are:\nLearning rate: {learningRate}\nbatchSize: {batchSize}")
+    learningRate = (args.learning_rate)
+    batchSize = (args.batch_size)    
+    numberOfEpochs = (args.epochs)
+    preload = args.preload
+    print(f"The learning parameters are:\nLearning rate: {learningRate}\nbatchSize: {batchSize}\nnumber of epochs: {numberOfEpochs}\npreload: {preload}")
     # TODO use the dataset to train a NeuralNetworkHeuristic, afterwards save it.
-    model = CanCaptureNeuralNetworkHeuristic()
+    model : nn.Module = CanCaptureNeuralNetworkHeuristic()
+    if preload is not None:
+        model = torch.load(preload)
+        model.train()
     if t.cuda.is_available():
         print("Cuda was available, transferring data to GPU")
         model.to(device='cuda')
@@ -112,7 +118,7 @@ if __name__ == '__main__':
 
     print("\nStart training: \n")
     startTime = time.perf_counter()
-    train(model=model, optimizer=optimizer, criterion=criterion, numberOfEpochs=5,
+    train(model=model, optimizer=optimizer, criterion=criterion, numberOfEpochs=numberOfEpochs,
           dataLoader=trainDataLoader, testDataLoader=testDataLoader)
     endTime = time.perf_counter()
     seconds = endTime - startTime
