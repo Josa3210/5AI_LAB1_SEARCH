@@ -1,5 +1,6 @@
 import os
 import time
+import argparse
 from math import floor
 from typing import Any, Type
 
@@ -71,7 +72,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
     torch.save(model, f"project/data/models/{model.getName()}_{round(testLoss / len(testDataLoader), 5)}")
 
 
-def collectData(folder_path: str, heuristic: Type[NeuralNetworkHeuristic]) -> ChessDataLoader:
+def collectData(folder_path: str, heuristic: Type[NeuralNetworkHeuristic], batchSize: int) -> ChessDataLoader:
     files = os.listdir(folder_path)
     dataParsers: [DataParser] = []
     for file in files:
@@ -79,16 +80,24 @@ def collectData(folder_path: str, heuristic: Type[NeuralNetworkHeuristic]) -> Ch
             dataParser = DataParser(filePath=folder_path + "/" + file)
             dataParser.parse()
             dataParsers.append(dataParser)
-    return ChessDataLoader(data_parsers=dataParsers, heuristic=heuristic, batch_size=32)
+    return ChessDataLoader(data_parsers=dataParsers, heuristic=heuristic, batch_size= batchSize)
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(prog="DataTrainer", description="Train our model using datasets located in /project/data/raw")
+    parser.add_argument('-l', '--learning-rate', default=0.0001)
+    parser.add_argument('-b', '--batch-size', default=32)
+    args = parser.parse_args()
+    learningRate = float(args.learning_rate)
+    batchSize = int(args.batch_size)    
+    
+    print(f"The learning parameters are:\nLearning rate: {learningRate}\nbatchSize: {batchSize}")
     # TODO use the dataset to train a NeuralNetworkHeuristic, afterwards save it.
     model = CanCaptureNeuralNetworkHeuristic()
     if t.cuda.is_available():
         print("Cuda was available, transferring data to GPU")
         model.to(device='cuda')
-    optimizer = Adam(model.parameters(), lr=0.00001)
+    optimizer = Adam(model.parameters(), lr=learningRate)
     criterion: Criterion = nn.MSELoss()
 
     # Specify the folder path you want to get filepaths from
@@ -96,10 +105,10 @@ if __name__ == '__main__':
     validationFolderPath = "project/data/raw/validation"
 
     print("Loading in all training data:")
-    trainDataLoader = collectData(trainingFolderPath, model.__class__)
+    trainDataLoader = collectData(trainingFolderPath, model.__class__, batchSize)
     print(f"Total amount of trainingdata batches: {len(trainDataLoader)}\n")
     print("Loading in test data:")
-    testDataLoader = collectData(validationFolderPath, model.__class__)
+    testDataLoader = collectData(validationFolderPath, model.__class__, batchSize)
 
     print("\nStart training: \n")
     startTime = time.perf_counter()
