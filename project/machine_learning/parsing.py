@@ -81,7 +81,7 @@ class ChessDataLoader():
         boardFeatures : torch.Tensor = torch.stack(boardFeatures)
         if self.cuda:
             if not self.printed:
-                print("Found Cuda, transferring data")
+                #print("Found Cuda, transferring data")
                 self.printed = True
             evaluations = evaluations.to(device='cuda')
             boardFeatures = boardFeatures.to(device='cuda')
@@ -105,7 +105,7 @@ class DataParser():
         if overwriteCache is false it will look if the calculations were already done.
         """
         if not overwriteCache and os.path.exists(self.cachedFile):
-            print(f"Found previous data, values are already available")
+            #print(f"Found previous data, values are already available")
             with open(self.cachedFile, 'rb') as file:
                 self.size = sum(1 for _ in file)
             return

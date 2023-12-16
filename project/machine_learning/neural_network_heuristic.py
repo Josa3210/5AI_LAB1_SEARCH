@@ -218,7 +218,7 @@ class CanCaptureNeuralNetworkHeuristic(NeuralNetworkHeuristic):
 
 
 class NetworkToOptimize(NeuralNetworkHeuristic):
-    def __init__(self, n_L1: int, n_L2: int) -> None:
+    def __init__(self, n_L1: int, n_L2) -> None:
         super().__init__()
         nInput: int = 5760
         nOutput: int = 1
