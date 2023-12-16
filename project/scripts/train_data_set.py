@@ -122,7 +122,7 @@ if __name__ == '__main__':
           dataLoader=trainDataLoader, testDataLoader=testDataLoader)
     endTime = time.perf_counter()
     seconds = endTime - startTime
-    minutes = seconds / 60
+    minutes = seconds // 60
     seconds = seconds - minutes*60
     print(f"Time passed training: {minutes} minutes {seconds} seconds")
     pass

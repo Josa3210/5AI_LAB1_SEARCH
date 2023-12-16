@@ -3,6 +3,7 @@ from math import floor
 from typing import Type
 
 import torch.optim
+import torch.cuda
 from bayes_opt import BayesianOptimization
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -11,6 +12,7 @@ from project.machine_learning.parsing import ChessDataLoader, DataParser
 from project.machine_learning.neural_network_heuristic import CanCaptureNeuralNetworkHeuristic, NeuralNetworkHeuristic
 import torch.nn as nn
 import torch as t
+
 
 
 class Criterion:
@@ -36,8 +38,9 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
             sumLoss = loss.item()
             runningLoss += sumLoss
             if j % 500 == 0:
-                percentage = (j / len(dataLoader))
+                percentage = int(j / len(dataLoader) * 100)
                 print("Training: {", "=" * percentage, " " * (100 - percentage), "}", end='\r')
+    print(" "* 140, end='\r')
 
 
 def evaluate(model: nn.Module, criterion: Criterion, testDataLoader: DataLoader) -> float:
@@ -63,26 +66,39 @@ def collectData(folder_path: str, heuristic: Type[NeuralNetworkHeuristic]) -> Ch
             dataParsers.append(dataParser)
     return ChessDataLoader(data_parsers=dataParsers, heuristic=heuristic)
 
+class Objective:
+    globalTrainDataLoader = None
+    globalTestDataLoader = None
+    def run(lr):
+        model = CanCaptureNeuralNetworkHeuristic()
+        if torch.cuda.is_available():
+            model.to(device='cuda')
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        criterion: Criterion = torch.nn.MSELoss()
 
-def Objective(lr):
-    model = CanCaptureNeuralNetworkHeuristic()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    criterion: Criterion = torch.nn.MSELoss()
+        # Specify the folder path you want to get filepaths from
+        trainingFolderPath = "project\\data\\raw\\training"
+        validationFolderPath = "project\\data\\raw\\validation"
 
-    # Specify the folder path you want to get filepaths from
-    trainingFolderPath = "D:\\_Opslag\\GitKraken\\5AI_LAB1_SEARCH\\project\\data\\raw\\training"
-    validationFolderPath = "D:\\_Opslag\\GitKraken\\5AI_LAB1_SEARCH\\project\\data\\raw\\validation"
+        if Objective.globalTrainDataLoader is None:
+            trainDataLoader = collectData(trainingFolderPath, model.__class__)
+            Objective.globalTrainDataLoader = trainDataLoader
+        else:
+            trainDataLoader = Objective.globalTrainDataLoader
+        if Objective.globalTestDataLoader is None:
+            testDataLoader = collectData(validationFolderPath, model.__class__)
+            Objective.globalTestDataLoader = testDataLoader
+        else:
+            testDataLoader = Objective.globalTestDataLoader
 
-    trainDataLoader = collectData(trainingFolderPath, model.__class__)
-    testDataLoader = collectData(validationFolderPath, model.__class__)
-
-    train(model=model, optimizer=optimizer, criterion=criterion, numberOfEpochs=5, dataLoader=trainDataLoader)
-    loss = evaluate(model=model, criterion=criterion, testDataLoader=testDataLoader)
-    return -loss
+        train(model=model, optimizer=optimizer, criterion=criterion, numberOfEpochs=5, dataLoader=trainDataLoader)
+        loss = evaluate(model=model, criterion=criterion, testDataLoader=testDataLoader)
+        return -loss
+    
 
 
 if __name__ == "__main__":
     pbounds = {'lr': (0.00002, 0.0004)}
-    optimizer = BayesianOptimization(f=Objective, pbounds=pbounds)
+    optimizer = BayesianOptimization(f=Objective.run, pbounds=pbounds)
 
     optimizer.maximize(3, 10)
