@@ -2,6 +2,7 @@ import os
 from copy import deepcopy
 from math import floor, tanh
 from typing import Generator, Type
+from random import shuffle
 
 import chess
 import chess.engine
@@ -46,6 +47,9 @@ class ChessDataLoader():
         
     def __iter__(self) -> Generator[chessDataTensor, None, None]:
         if self.data != None:
+            print("Shuffling data", end='\r')
+            shuffle(self.data)
+            print(" "*100, end= '\r')
             yield from self.data
             return
         self.data = []

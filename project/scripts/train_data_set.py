@@ -26,12 +26,10 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
         print("=====================================================================")
         runningLoss = 0
         reportLoss = 0
-        torch.gradient
         for j, data in enumerate(dataLoader):
             inputs, targets = data
             optimizer.zero_grad()
             outputs = model(inputs)
-
             loss = criterion(outputs, targets)
             loss.backward()
 
@@ -40,12 +38,18 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
             sumLoss = loss.item()
             runningLoss += sumLoss
             reportLoss += sumLoss
+            if (j + 1) % floor(reportingPeriod/20) == 0:
+                percentage = floor((j % reportingPeriod) / reportingPeriod * 100)
+                print("Evaluating: {", "=" * percentage,
+                    " " * (100 - percentage), "}", end='\r')
             if (j + 1) % reportingPeriod == 0:
+                print(" "*130, end="\r")
                 batchLoss = reportLoss / reportingPeriod
                 reportLoss = 0
                 # print(f"Current running loss: {runningLoss}")
                 print(
                     f"Average loss over last {reportingPeriod} batches: {round(batchLoss, 5)} ")
+        print(" "*130, end="\r")
         print(f"Finished training for epoch {i + 1}")
         testLoss = 0
         with torch.no_grad():
@@ -75,7 +79,7 @@ def collectData(folder_path: str, heuristic: Type[NeuralNetworkHeuristic]) -> Ch
             dataParser = DataParser(filePath=folder_path + "/" + file)
             dataParser.parse()
             dataParsers.append(dataParser)
-    return ChessDataLoader(data_parsers=dataParsers, heuristic=heuristic)
+    return ChessDataLoader(data_parsers=dataParsers, heuristic=heuristic, batch_size=32)
 
 
 if __name__ == '__main__':
