@@ -12,7 +12,7 @@ from torch.cuda.amp import autocast
 from torch.optim import Adam, Optimizer
 from torch.utils.data import DataLoader
 
-from project.machine_learning.neural_network_heuristic import CanCaptureNeuralNetworkHeuristic, NeuralNetworkHeuristic
+from project.machine_learning.neural_network_heuristic import CanCaptureNeuralNetworkHeuristic, NeuralNetworkHeuristic, OptimizeActivationReLu, OptimizeActivationLeakyReLu
 from project.machine_learning.parsing import ChessDataLoader, DataParser
 
 
@@ -43,7 +43,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
             reportLoss += sumLoss
             if (j + 1) % floor(reportingPeriod / 20) == 0:
                 percentage = floor((j % reportingPeriod) / reportingPeriod * 100)
-                print("Evaluating: {", "=" * percentage,
+                print("Training: {", "=" * percentage,
                       " " * (100 - percentage), "}", end='\r')
             if (j + 1) % reportingPeriod == 0:
                 print(" " * 130, end="\r")
@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
     print(f"The learning parameters are:\nLearning rate: {learningRate}\nbatchSize: {batchSize}\nnumber of epochs: {numberOfEpochs}\npreload: {preload}")
     # TODO use the dataset to train a NeuralNetworkHeuristic, afterwards save it.
-    model: nn.Module = CanCaptureNeuralNetworkHeuristic()
+    model: nn.Module = OptimizeActivationLeakyReLu(500, 40, 0)
     if preload is not None:
         model = torch.load(preload)
         model.train()
@@ -127,5 +127,5 @@ if __name__ == '__main__':
     seconds = endTime - startTime
     minutes = seconds // 60
     seconds = seconds - minutes * 60
-    print(f"Time passed training: {minutes} minutes {seconds} seconds")
+    print(f"Time passed training: {round(minutes)} minutes {round(seconds)} seconds")
     pass
