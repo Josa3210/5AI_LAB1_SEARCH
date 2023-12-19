@@ -12,7 +12,7 @@ from torch.cuda.amp import autocast
 from torch.optim import Adam, Optimizer
 from torch.utils.data import DataLoader
 
-from project.machine_learning.neural_network_heuristic import CanCaptureNeuralNetworkHeuristic, NeuralNetworkHeuristic, OptimizeActivationReLu, OptimizeActivationLeakyReLu
+from project.machine_learning.neural_network_heuristic import SimpleNeuralNetworkHeuristic, CanCaptureNeuralNetworkHeuristic, NeuralNetworkHeuristic, OptimizeActivationReLu, OptimizeActivationLeakyReLu
 from project.machine_learning.parsing import ChessDataLoader, DataParser
 
 
@@ -97,8 +97,14 @@ if __name__ == '__main__':
     preload = args.preload
 
     print(f"The learning parameters are:\nLearning rate: {learningRate}\nbatchSize: {batchSize}\nnumber of epochs: {numberOfEpochs}\npreload: {preload}")
+
     # TODO use the dataset to train a NeuralNetworkHeuristic, afterwards save it.
-    model: nn.Module = OptimizeActivationLeakyReLu(500, 40, 0)
+
+    """
+    vvv Insert model here vvv
+    """
+    model: nn.Module = OptimizeActivationReLu(500, 40, 0)
+
     if preload is not None:
         model = torch.load(preload)
         model.train()

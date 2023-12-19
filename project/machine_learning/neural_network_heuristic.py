@@ -127,7 +127,7 @@ class CanCaptureNeuralNetworkHeuristic(NeuralNetworkHeuristic):
         Initializes the amount if input and output nodes
         - Input is derived from the heuristic (look at heuristic for more explanation):
             - 64 positions
-            - 13 pieces
+            - 12 pieces
             - 9 possible capture states
         - Output is 1 node (regression)
             - 1     -> advantage for white
@@ -136,7 +136,7 @@ class CanCaptureNeuralNetworkHeuristic(NeuralNetworkHeuristic):
         """
         super().__init__()
 
-        self.nInput = 64 * 13 * 9
+        self.nInput = 64 * 12 * 9
         self.nOutput = 1
 
         pass
@@ -179,69 +179,46 @@ class CanCaptureNeuralNetworkHeuristic(NeuralNetworkHeuristic):
 
         # Initialize the empty tensor and empty dictionary
         attackersDict = dict()  # key = position, value = amount of pieces it can capture
-        features: torch.Tensor = torch.zeros([64, 13, 9], dtype=torch.float32)
-
-        # filter fenString
-        fenString: string = board.fen()
-        positions: string = fenString.split()[0]
-        positions = positions.replace('/', "")
+        features: torch.Tensor = torch.zeros([64, 12, 9], dtype=torch.float32)
 
         # Go over all the positions
-        for pos in range(63):
-
+        for square in chess.SQUARES:
+            attackedPiece = board.piece_at(square)
             # Check if there is a piece on the current square
-            attackedPiece: chess.Piece = board.piece_at(pos)
             if attackedPiece is not None:
-
                 # Determine the color of the attacking piece
-                if attackedPiece.color == chess.WHITE:
-                    attackingColor = chess.BLACK
-                else:
-                    attackingColor = chess.WHITE
+                attackingColor = not attackedPiece.color
 
                 # Look at all the pieces of the attackingColor that can attack the current position
-                attackers = board.attackers(attackingColor, pos)
+                attackers = board.attackers(attackingColor, square)
 
                 # If there is an attacker, set that position in the dict +1 because it can attack a piece of the other color
-                for attacker in attackers:
-                    if attacker not in attackersDict.keys():
-                        attackersDict[attacker] = 1
+                for attackerSquare in attackers:
+                    if attackerSquare not in attackersDict.keys():
+                        attackersDict[attackerSquare] = 1
                     else:
-                        attackersDict[attacker] += 1
+                        attackersDict[attackerSquare] += 1
 
-        pos = 0
-        for char in positions:
-            if not char.isnumeric():
+        for square in chess.SQUARES:
+            currPiece = board.piece_at(square)
+            if currPiece is not None:
                 # Get piece pieceColor
-                if char.islower():
-                    pieceColor = 5
-                else:
+                if currPiece.color:
                     pieceColor = 0
+                else:
+                    pieceColor = 5
 
-                # Get piece value
-                match char.lower():
-                    case 'p':
-                        pieceVal = 1
-                    case 'b':
-                        pieceVal = 2
-                    case 'n':
-                        pieceVal = 3
-                    case 'r':
-                        pieceVal = 4
-                    case 'q':
-                        pieceVal = 5
-                    case 'k':
-                        pieceVal = 6
-                    case _:
-                        pieceVal = 0
-                piece = pieceVal + pieceColor
-                if pos not in attackersDict.keys():
+                # Get the piece value: this will be the value of the piece + 5 if it is a black piece
+                # We do -1 because the Tensor starts at 0 (white pawn = 0)
+                pieceVal = currPiece.piece_type + pieceColor - 1
+
+                if square not in attackersDict.keys():
                     pieceAttacks = 0
                 else:
-                    pieceAttacks = attackersDict[pos]
+                    pieceAttacks = attackersDict[square]
 
-                features[pos][piece][pieceAttacks] = 1
-            pos += 1
+                features[square][pieceVal][pieceAttacks] = 1
+
         return torch.flatten(features)
 
 
@@ -284,9 +261,9 @@ class OptimizeActivationReLu(CanCaptureNeuralNetworkHeuristic):
 
         self.nL1 = nL1
         self.nL2 = nL2
-        self.nL2 = nL3
+        self.nL3 = nL3
 
-        if nL3 != 0:
+        if self.nL3 != 0:
             self.layers: nn.Sequential = nn.Sequential(
                 nn.Linear(self.nInput, self.nL1),
                 nn.ReLU(),
@@ -299,11 +276,11 @@ class OptimizeActivationReLu(CanCaptureNeuralNetworkHeuristic):
             )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
         else:
             self.layers: nn.Sequential = nn.Sequential(
-                nn.Linear(self.nInput, nL1),
+                nn.Linear(self.nInput, self.nL1),
                 nn.ReLU(),
-                nn.Linear(nL1, nL2),
+                nn.Linear(self.nL1, self.nL2),
                 nn.ReLU(),
-                nn.Linear(nL2, self.nOutput),
+                nn.Linear(self.nL2, self.nOutput),
                 nn.Tanh()
             )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
 
@@ -342,3 +319,36 @@ class OptimizeActivationLeakyReLu(CanCaptureNeuralNetworkHeuristic):
 
     def getName(self) -> string:
         return f"OptimizeActivation_canCaptureHeuristic_LeakyReLu"
+
+
+class OptimizeOptimization(CanCaptureNeuralNetworkHeuristic):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.nL1 = 500
+        self.nL2 = 40
+        self.nL3 = 0
+
+        if self.nL3 != 0:
+            self.layers: nn.Sequential = nn.Sequential(
+                nn.Linear(self.nInput, self.nL1),
+                nn.LeakyReLU(),
+                nn.Linear(self.nL1, self.nL2),
+                nn.LeakyReLU(),
+                nn.Linear(self.nL2, self.nL3),
+                nn.LeakyReLU(),
+                nn.Linear(self.nL3, self.nOutput),
+                nn.Tanh()
+            )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
+        else:
+            self.layers: nn.Sequential = nn.Sequential(
+                nn.Linear(self.nInput, self.nL1),
+                nn.LeakyReLU(),
+                nn.Linear(self.nL1, self.nL2),
+                nn.LeakyReLU(),
+                nn.Linear(self.nL2, self.nOutput),
+                nn.Tanh()
+            )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
+
+    def getName(self) -> string:
+        return f"OptimizeOptimizer_lr_wd"

@@ -1,6 +1,6 @@
 import os
 from math import floor
-from typing import Type
+from typing import Type, Tuple
 
 import torch.optim
 import torch.cuda
@@ -10,7 +10,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from project.machine_learning.parsing import ChessDataLoader, DataParser
-from project.machine_learning.neural_network_heuristic import CanCaptureNeuralNetworkHeuristic, NeuralNetworkHeuristic, NetworkToOptimize
+from project.machine_learning.neural_network_heuristic import CanCaptureNeuralNetworkHeuristic, OptimizeActivationReLu, NeuralNetworkHeuristic, OptimizeOptimization
 import torch.nn as nn
 import torch as t
 
@@ -38,7 +38,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
             if j % 100 == 0:
                 percentage = int(j / len(dataLoader) * 100)
                 print("Training: {", "=" * percentage, " " * (100 - percentage), "} ", round(percentage), "%", end='\r')
-    print(" " * 150, end='\r')
+    print(" " * 200, end='\r')
 
 
 def evaluate(model: nn.Module, criterion: Criterion, testDataLoader: DataLoader) -> float:
@@ -51,11 +51,11 @@ def evaluate(model: nn.Module, criterion: Criterion, testDataLoader: DataLoader)
             loss = criterion(outputs, targets)
             testLoss += loss.item()
 
-    if j % 200 == 0:
-        percentage = int(j / len(testDataLoader) * 100)
-        print("Training: {", "=" * percentage, " " * (100 - percentage), "} ", round(percentage), "%", end='\r')
+        if j % 200 == 0:
+            percentage = int(j / len(testDataLoader) * 100)
+            print("Validating: {", "=" * percentage, " " * (100 - percentage), "} ", round(percentage), "%", end='\r')
 
-    print(" " * 150, end='\r')
+    print(" " * 200, end='\r')
     averageLoss = round(testLoss / len(testDataLoader), 5)
     return averageLoss
 
@@ -75,16 +75,17 @@ class Objective:
     globalTrainDataLoader = None
     globalTestDataLoader = None
 
-    def run(n_L1: int, n_L2: int, lr: int) -> float:
+    def run(lr: int) -> float:
 
-        n_L1: int = int(n_L1)
-        n_L2: int = int(n_L2)
+        nL1: int = 256
+        nL2: int = 512
+        nL3: int = 256
         lr: int = int(lr)
 
-        model = NetworkToOptimize(n_L1=n_L1, n_L2=n_L2)
+        model = OptimizeActivationReLu(nL1, nL2, nL3)
         if torch.cuda.is_available():
             model.to(device='cuda')
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=0.01)
         criterion: Criterion = torch.nn.MSELoss()
 
         # Specify the folder path you want to get filepaths from
@@ -108,9 +109,10 @@ class Objective:
 
 
 if __name__ == "__main__":
-    pbounds = {'n_L1': (64, 512), 'n_L2': (8, 64), 'lr': (0.00002, 0.0004)}
+    # pbounds = {'nL1': (64, 2048), 'nL2': (64, 2048), 'nL3': (64, 2048), 'lr': (0.0001, 0.0005), 'wd': (0, 0.5)}
+    pbounds = {'lr': (10e-5, 0.1)}
     optimizer = BayesianOptimization(f=Objective.run, pbounds=pbounds)
 
-    optimizer.maximize(3, 10)
-    max = optimizer.max
-    print(max)
+    optimizer.maximize()
+    maxVals = optimizer.max
+    print(maxVals)
