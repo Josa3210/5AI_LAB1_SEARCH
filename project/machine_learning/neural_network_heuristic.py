@@ -121,25 +121,54 @@ class SimpleNeuralNetworkHeuristic(NeuralNetworkHeuristic):
         return features
 
 
-class CanCaptureNeuralNetworkHeuristic(NeuralNetworkHeuristic):
-    def __init__(self) -> None:
-        """
-        Initializes the amount if input and output nodes
-        - Input is derived from the heuristic (look at heuristic for more explanation):
-            - 64 positions
-            - 12 pieces
-            - 9 possible capture states
-        - Output is 1 node (regression)
-            - 1     -> advantage for white
-            - 0     -> draw
-            - -1    -> advantage for black
-        """
+class CanCaptureHeuristic(NeuralNetworkHeuristic):
+    def __init__(self, nL1: int, nL2: int, nL3: int, activation: nn.modules.activation, dropoutRate: float) -> None:
+        super().__init__()
         super().__init__()
 
         self.nInput = 64 * 12 * 9
         self.nOutput = 1
 
-        pass
+        self.nL1 = nL1
+        self.nL2 = nL2
+        self.nL3 = nL3
+
+        self.activation = activation
+        self.dropoutRate = dropoutRate
+
+        if self.nL1 != 0:
+            self.layers: nn.Sequential = nn.Sequential(
+                nn.Linear(self.nInput, self.nL1),
+                self.activation,
+                nn.Dropout(self.dropoutRate),
+                nn.Linear(self.nL1, self.nOutput),
+                nn.Tanh()
+            )
+        elif self.nL2 != 0:
+            self.layers: nn.Sequential = nn.Sequential(
+                nn.Linear(self.nInput, self.nL1),
+                self.activation,
+                nn.Dropout(self.dropoutRate),
+                nn.Linear(self.nL1, self.nL2),
+                self.activation,
+                nn.Dropout(self.dropoutRate),
+                nn.Linear(self.nL2, self.nOutput),
+                nn.Tanh()
+            )
+        elif self.nL3 != 0:
+            self.layers: nn.Sequential = nn.Sequential(
+                nn.Linear(self.nInput, self.nL1),
+                self.activation,
+                nn.Dropout(self.dropoutRate),
+                nn.Linear(self.nL1, self.nL2),
+                self.activation,
+                nn.Dropout(self.dropoutRate),
+                nn.Linear(self.nL2, self.nL3),
+                self.activation,
+                nn.Dropout(self.dropoutRate),
+                nn.Linear(self.nL3, self.nOutput),
+                nn.Tanh()
+            )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -149,22 +178,13 @@ class CanCaptureNeuralNetworkHeuristic(NeuralNetworkHeuristic):
         output: torch.Tensor = self.layers.forward(x)
         return output
 
-    @abstractmethod
-    def getName(self) -> string:
-        """
-        This function will give the model a name with some characteristics.
-        This name will be used when saving the model so the different models can be easily found
-        """
-        pass
-
     def execute(self, board: chess.Board) -> float:
         """
         This is the end user's function to use for the neural network.
         """
         # Extract features from board
         features: torch.Tensor = self.featureExtraction(board)
-        inputT: torch.Tensor = torch.flatten(features)
-        output: float = self.forward(inputT)[0]
+        output: float = self.forward(features)[0]
         return output
 
     def featureExtraction(board: chess.Board) -> torch.Tensor:
@@ -203,7 +223,7 @@ class CanCaptureNeuralNetworkHeuristic(NeuralNetworkHeuristic):
             currPiece = board.piece_at(square)
             if currPiece is not None:
                 # Get piece pieceColor
-                if currPiece.color:
+                if currPiece.color == board.turn:
                     pieceColor = 0
                 else:
                     pieceColor = 5
@@ -221,134 +241,5 @@ class CanCaptureNeuralNetworkHeuristic(NeuralNetworkHeuristic):
 
         return torch.flatten(features)
 
-
-class OptimizeLayers(CanCaptureNeuralNetworkHeuristic):
-    def __init__(self, nL1: int, nL2: int, nL3: int) -> None:
-        super().__init__()
-
-        self.nL1 = nL1
-        self.nL2 = nL2
-        self.nL2 = nL3
-
-        if nL3 != 0:
-            self.layers: nn.Sequential = nn.Sequential(
-                nn.Linear(self.nInput, self.nL1),
-                nn.ReLU(),
-                nn.Linear(self.nL1, self.nL2),
-                nn.ReLU(),
-                nn.Linear(self.nL2, self.nL3),
-                nn.ReLU(),
-                nn.Linear(self.nL3, self.nOutput),
-                nn.Tanh()
-            )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
-        else:
-            self.layers: nn.Sequential = nn.Sequential(
-                nn.Linear(self.nInput, nL1),
-                nn.ReLU(),
-                nn.Linear(nL1, nL2),
-                nn.ReLU(),
-                nn.Linear(nL2, self.nOutput),
-                nn.Tanh()
-            )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
-
     def getName(self) -> string:
-        return f"OptimizeLayers_canCaptureHeuristic_{self.nL1}_{self.nL2}_{self.nL3}"
-
-
-class OptimizeActivationReLu(CanCaptureNeuralNetworkHeuristic):
-    def __init__(self, nL1: int, nL2: int, nL3: int) -> None:
-        super().__init__()
-
-        self.nL1 = nL1
-        self.nL2 = nL2
-        self.nL3 = nL3
-
-        if self.nL3 != 0:
-            self.layers: nn.Sequential = nn.Sequential(
-                nn.Linear(self.nInput, self.nL1),
-                nn.ReLU(),
-                nn.Linear(self.nL1, self.nL2),
-                nn.ReLU(),
-                nn.Linear(self.nL2, self.nL3),
-                nn.ReLU(),
-                nn.Linear(self.nL3, self.nOutput),
-                nn.Tanh()
-            )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
-        else:
-            self.layers: nn.Sequential = nn.Sequential(
-                nn.Linear(self.nInput, self.nL1),
-                nn.ReLU(),
-                nn.Linear(self.nL1, self.nL2),
-                nn.ReLU(),
-                nn.Linear(self.nL2, self.nOutput),
-                nn.Tanh()
-            )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
-
-    def getName(self) -> string:
-        return f"OptimizeActivation_canCaptureHeuristic_ReLu"
-
-
-class OptimizeActivationLeakyReLu(CanCaptureNeuralNetworkHeuristic):
-    def __init__(self, nL1: int, nL2: int, nL3: int) -> None:
-        super().__init__()
-
-        self.nL1 = nL1
-        self.nL2 = nL2
-        self.nL2 = nL3
-
-        if nL3 != 0:
-            self.layers: nn.Sequential = nn.Sequential(
-                nn.Linear(self.nInput, self.nL1),
-                nn.LeakyReLU(),
-                nn.Linear(self.nL1, self.nL2),
-                nn.LeakyReLU(),
-                nn.Linear(self.nL2, self.nL3),
-                nn.LeakyReLU(),
-                nn.Linear(self.nL3, self.nOutput),
-                nn.Tanh()
-            )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
-        else:
-            self.layers: nn.Sequential = nn.Sequential(
-                nn.Linear(self.nInput, nL1),
-                nn.LeakyReLU(),
-                nn.Linear(nL1, nL2),
-                nn.LeakyReLU(),
-                nn.Linear(nL2, self.nOutput),
-                nn.Tanh()
-            )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
-
-    def getName(self) -> string:
-        return f"OptimizeActivation_canCaptureHeuristic_LeakyReLu"
-
-
-class OptimizeOptimization(CanCaptureNeuralNetworkHeuristic):
-    def __init__(self) -> None:
-        super().__init__()
-
-        self.nL1 = 500
-        self.nL2 = 40
-        self.nL3 = 0
-
-        if self.nL3 != 0:
-            self.layers: nn.Sequential = nn.Sequential(
-                nn.Linear(self.nInput, self.nL1),
-                nn.LeakyReLU(),
-                nn.Linear(self.nL1, self.nL2),
-                nn.LeakyReLU(),
-                nn.Linear(self.nL2, self.nL3),
-                nn.LeakyReLU(),
-                nn.Linear(self.nL3, self.nOutput),
-                nn.Tanh()
-            )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
-        else:
-            self.layers: nn.Sequential = nn.Sequential(
-                nn.Linear(self.nInput, self.nL1),
-                nn.LeakyReLU(),
-                nn.Linear(self.nL1, self.nL2),
-                nn.LeakyReLU(),
-                nn.Linear(self.nL2, self.nOutput),
-                nn.Tanh()
-            )  # Todo define a the necessary layers https://youtu.be/ORMx45xqWkA?t=111
-
-    def getName(self) -> string:
-        return f"OptimizeOptimizer_lr_wd"
+        return "Optimizable_CanCaptureHeuristic"
