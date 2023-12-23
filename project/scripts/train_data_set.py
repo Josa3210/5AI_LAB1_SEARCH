@@ -38,7 +38,7 @@ class EarlyStopper:
             self.minLoss = loss
         elif loss > self.minLoss + self.delta:
             self.counter += 1
-            if self.counter > self.patience:
+            if self.counter >= self.patience:
                 return True
         return False
 
@@ -47,6 +47,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, dataLoad
     _runningLoss = 0
     _reportLoss = 0
     reportingPeriod = 1000
+    batch = 0
     for j, data in enumerate(dataLoader):
         inputs, targets = data
         optimizer.zero_grad()
@@ -69,10 +70,11 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, dataLoad
 
         # Report loss
         if (j + 1) % reportingPeriod == 0:
+            batch += 1
             print(" " * 130, end="\r")
             batchLoss = _reportLoss / reportingPeriod
             _reportLoss = 0
-            print(f"Average loss over last {reportingPeriod} batches: {round(batchLoss, 5)} ")
+            print(f"{batch}: Average loss over last {reportingPeriod} batches: {round(batchLoss, 5)} ")
     print(" " * 130, end="\r")
     _averageTrainingLoss = _runningLoss / len(dataLoader)
     return round(_averageTrainingLoss, 5)
@@ -127,8 +129,8 @@ if __name__ == '__main__':
     """
     vvv Insert model here vvv
     """
-    model: nn.Module = CanCaptureHeuristic(256, 128, 0, nn.ReLU(), 0.3)
-    earlyStopper: EarlyStopper = EarlyStopper(1, 0.01)
+    model: nn.Module = CanCaptureHeuristic(256, 128, 0, nn.LeakyReLU(), 0.5)
+    earlyStopper: EarlyStopper = EarlyStopper(5, 0.01)
     if preload is not None:
         model = torch.load(preload)
         model.train()
