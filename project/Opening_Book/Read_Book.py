@@ -10,14 +10,16 @@ class Read_Book:
 
     def Opening(self, board):
         moves = []
-        best_move = None
+        opening_move = None
         try:
             with chess.polyglot.open_reader(self.Path) as reader:
                 for entry in reader.find_all(board):
                     moves.append(entry.move)
         except Exception as e:
-            print(f"Error opening file")
+            print(f"Error opening file: {e}")
         if moves:
-            best_move = random.choice(moves)
+            opening_move = random.choice(moves)
+        else:
+            opening_move = None
 
-        return best_move
+        return opening_move

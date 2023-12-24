@@ -12,7 +12,6 @@ class MiniMaxAgent(Agent):
         self.name = "ML Bot"
         self.author = "Neural Network Ninjas"
         self.beginning = True
-        self.MoveQueue = []
         self.Read_Book = Read_Book()
 
     def calculate_move(self, board: chess.Board) -> chess.Move:
@@ -25,21 +24,17 @@ class MiniMaxAgent(Agent):
         Start_time = time.time()
         Current_depth = 3
         best_move = None
+        opening_move = None
 
         #  If the agent is playing as black, the utility values are flipped (negative-positive)
         flip_value = 1 if board.turn == chess.WHITE else -1
 
-        #  check if there are any moves in queue
-        if self.MoveQueue:
-            board.push(self.MoveQueue[0])
-            return self.MoveQueue.pop()
-
         #  If begin game we use opening playbook
-        if self.beginning:
-            self.MoveQueue.append(self.Read_Book.Opening(board))
-            self.beginning = False
-            return self.MoveQueue.pop()
-
+        opening_move = self.Read_Book.Opening(board)
+        if opening_move is None:
+            pass
+        else:
+            return opening_move
 
         best_utility = float("-inf") if board.turn == chess.WHITE else float("inf")
         #       for Current_depth in range(1, depth + 1): #Iterative Deepening
