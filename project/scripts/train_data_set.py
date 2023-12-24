@@ -18,16 +18,34 @@ class Criterion:
         pass
 
 
-def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOfEpochs, dataLoader: DataLoader, testDataLoader: DataLoader) -> None:
+class EarlyStopper:
+    def __init__(self, patience, delta):
+        self.minLoss = float('inf')
+        self.counter = 0
+        self.patience = patience
+        self.delta = delta
+
+    def early_stop(self, loss: float):
+        if loss < self.minLoss:
+            self.counter = 0
+            self.minLoss = loss
+        elif loss > self.minLoss + self.delta:
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
+
+
+def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, dataLoader: DataLoader) -> float:
+    _runningLoss = 0
+    _reportLoss = 0
     reportingPeriod = 1000
-    for i in range(numberOfEpochs):
-        print(f"Starting epoch {i + 1}:")
-        print("=====================================================================")
-        runningLoss = 0
-        reportLoss = 0
-        for j, data in enumerate(dataLoader):
-            inputs, targets = data
-            optimizer.zero_grad()
+    batch = 0
+    for j, data in enumerate(dataLoader):
+        inputs, targets = data
+        optimizer.zero_grad()
+
+        with autocast():
             outputs = model(inputs)
 
             loss = criterion(outputs, targets)
@@ -35,18 +53,28 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, numberOf
 
             optimizer.step()
 
-            sumLoss = loss.item()
-            runningLoss += sumLoss
-            reportLoss += sumLoss
-            if (j + 1) % reportingPeriod == 0:
-                batchLoss = reportLoss / reportingPeriod
-                reportLoss = 0
-                # print(f"Current running loss: {runningLoss}")
-                print(
-                    f"Average loss over last {reportingPeriod} batches: {round(batchLoss, 5)} ")
-        print(f"Finished training for epoch {i + 1}")
-        testLoss = 0
-        for j, data in enumerate(testDataLoader):
+        # Report progress
+        if (j + 1) % floor(reportingPeriod / 20) == 0:
+            percentage = floor((j % reportingPeriod) / reportingPeriod * 100)
+            print("Training: {", "=" * percentage,
+                  " " * (100 - percentage), "}", end='\r')
+
+        # Report loss
+        if (j + 1) % reportingPeriod == 0:
+            batch += 1
+            print(" " * 130, end="\r")
+            batchLoss = _reportLoss / reportingPeriod
+            _reportLoss = 0
+            print(f"{batch}: Average loss over last {reportingPeriod} batches: {round(batchLoss, 5)} ")
+    print(" " * 130, end="\r")
+    _averageTrainingLoss = _runningLoss / len(dataLoader)
+    return round(_averageTrainingLoss, 5)
+
+
+def validate(model: nn.Module, criterion: Criterion, validationDataLoader: DataLoader) -> float:
+    _validationLoss = 0
+    with torch.no_grad():
+        for j, data in enumerate(validationDataLoader):
             inputs, targets = data
 
             outputs = model(inputs)
@@ -77,9 +105,20 @@ def collectData(folder_path: str, heuristic: Type[NeuralNetworkHeuristic]) -> Ch
 
 if __name__ == '__main__':
     # TODO use the dataset to train a NeuralNetworkHeuristic, afterwards save it.
-    model = CanCaptureNeuralNetworkHeuristic()
-    optimizer = Adam(model.parameters(), lr=0.00001)
-    # optimizer = torch.optim.Adam()
+
+    """
+    vvv Insert model here vvv
+    """
+    model: nn.Module = CanCaptureHeuristic(256, 128, 0, nn.LeakyReLU(), 0.5)
+    earlyStopper: EarlyStopper = EarlyStopper(5, 0.01)
+    if preload is not None:
+        model = torch.load(preload)
+        model.train()
+    if t.cuda.is_available():
+        # print("Cuda was available, transferring data to GPU")
+        model.to(device='cuda')
+
+    optimizer = Adam(model.parameters(), lr=learningRate)
     criterion: Criterion = nn.MSELoss()
 
     # Specify the folder path you want to get filepaths from
