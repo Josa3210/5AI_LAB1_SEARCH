@@ -13,10 +13,11 @@ import torch.optim
 from torch.cuda.amp import autocast
 from torch.optim import Adam, Optimizer
 from torch.utils.data import DataLoader
+import random
 
 import matplotlib.pyplot as plt
 
-from project.machine_learning.neural_network_heuristic import NeuralNetworkHeuristic, CanCaptureHeuristic
+from project.machine_learning.neural_network_heuristic import NeuralNetworkHeuristic, CanCaptureHeuristic, CanCaptureHeuristicBit
 from project.machine_learning.parsing import ChessDataLoader, DataParser
 
 
@@ -48,6 +49,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, dataLoad
     _reportLoss = 0
     reportingPeriod = 1000
     batch = 0
+    model.train()
     for j, data in enumerate(dataLoader):
         inputs, targets = data
         optimizer.zero_grad()
@@ -82,6 +84,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, dataLoad
 
 def validate(model: nn.Module, criterion: Criterion, validationDataLoader: DataLoader) -> float:
     _validationLoss = 0
+    model.eval()
     with torch.no_grad():
         for j, data in enumerate(validationDataLoader):
             inputs, targets = data
@@ -120,7 +123,7 @@ if __name__ == '__main__':
     learningRate = args.learning_rate
     batchSize = args.batch_size
     numberOfEpochs = args.epochs
-    preload = args.preload
+    preload = str(args.preload)
 
     print(f"The learning parameters are:\n- Learning rate:\t{learningRate}\n- batchSize:\t\t{batchSize}\n- number of epochs:\t{numberOfEpochs}\n- preload:\t\t{preload}\n")
 
@@ -129,8 +132,8 @@ if __name__ == '__main__':
     """
     vvv Insert model here vvv
     """
-    model: nn.Module = CanCaptureHeuristic(256, 128, 0, nn.LeakyReLU(), 0.5)
-    earlyStopper: EarlyStopper = EarlyStopper(5, 0.01)
+    model: nn.Module = CanCaptureHeuristicBit(128, 64, 0, nn.LeakyReLU(), 0.3)
+    earlyStopper: EarlyStopper = EarlyStopper(1, 0.005)
     if preload is not None:
         model = torch.load(preload)
         model.train()
@@ -142,7 +145,7 @@ if __name__ == '__main__':
     criterion: Criterion = nn.MSELoss()
 
     # Specify the folder path you want to get filepaths from
-    trainingFolderPath = "project/data/raw/training"
+    trainingFolderPath = "project/data/raw/training2"
     validationFolderPath = "project/data/raw/validation"
 
     trainDataLoader = collectData(trainingFolderPath, model.__class__, batchSize)

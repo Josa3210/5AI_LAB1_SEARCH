@@ -121,9 +121,8 @@ class SimpleNeuralNetworkHeuristic(NeuralNetworkHeuristic):
         return features
 
 
-class CanCaptureHeuristic(NeuralNetworkHeuristic):
+class CanCaptureHeuristicBit(NeuralNetworkHeuristic):
     def __init__(self, nL1: int, nL2: int, nL3: int, activation: nn.modules.activation, dropoutRate: float) -> None:
-        super().__init__()
         super().__init__()
 
         self.nInput = 64 * 12 * 9
@@ -242,4 +241,128 @@ class CanCaptureHeuristic(NeuralNetworkHeuristic):
         return torch.flatten(features)
 
     def getName(self) -> string:
-        return "Optimizable_CanCaptureHeuristic"
+        return "CanCaptureHeuristicBit"
+
+class CanCaptureHeuristic(NeuralNetworkHeuristic):
+    def __init__(self, nL1: int, nL2: int, nL3: int, activation: nn.modules.activation, dropoutRate: float) -> None:
+        super().__init__()
+
+        self.nInput = 64 * 12
+        self.nOutput = 1
+
+        self.nL1 = nL1
+        self.nL2 = nL2
+        self.nL3 = nL3
+
+        self.activation = activation
+        self.dropoutRate = dropoutRate
+
+        if self.nL1 != 0:
+            self.layers: nn.Sequential = nn.Sequential(
+                nn.Linear(self.nInput, self.nL1),
+                self.activation,
+                nn.Dropout(self.dropoutRate),
+                nn.Linear(self.nL1, self.nOutput),
+                nn.Tanh()
+            )
+        elif self.nL2 != 0:
+            self.layers: nn.Sequential = nn.Sequential(
+                nn.Linear(self.nInput, self.nL1),
+                self.activation,
+                nn.Dropout(self.dropoutRate),
+                nn.Linear(self.nL1, self.nL2),
+                self.activation,
+                nn.Dropout(self.dropoutRate),
+                nn.Linear(self.nL2, self.nOutput),
+                nn.Tanh()
+            )
+        elif self.nL3 != 0:
+            self.layers: nn.Sequential = nn.Sequential(
+                nn.Linear(self.nInput, self.nL1),
+                self.activation,
+                nn.Dropout(self.dropoutRate),
+                nn.Linear(self.nL1, self.nL2),
+                self.activation,
+                nn.Dropout(self.dropoutRate),
+                nn.Linear(self.nL2, self.nL3),
+                self.activation,
+                nn.Dropout(self.dropoutRate),
+                nn.Linear(self.nL3, self.nOutput),
+                nn.Tanh()
+            )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        This is the function we call to train the model. This should not be called
+        By the end user. they should call self.execute()
+        """
+        output: torch.Tensor = self.layers.forward(x)
+        return output
+
+    def execute(self, board: chess.Board) -> float:
+        """
+        This is the end user's function to use for the neural network.
+        """
+        # Extract features from board
+        features: torch.Tensor = self.featureExtraction(board)
+        output: float = self.forward(features)[0]
+        return output
+
+    def featureExtraction(board: chess.Board) -> torch.Tensor:
+        """
+        This takes a board and converts it to the input of our neural network.
+        The input will be a set of (curr_pos, piece_type, am_can_capture)
+        Input size will be: 64 * 13 * 9 = 5760
+        - 64 board positions    -> starting from A1 (left white rook) to H7 (right black rook)
+        - 13 piece types        -> 0: no piece, 1: white pawn, 2: white bishop, 3: white knight, 4: white rook, 5: white queen, 6: white king, 7-12: same but black pieces
+        - 9 captures states     -> the amount of pieces that can be captured by the piece (0 is none can be taken, +1 for every direction a piece can be captured)
+        """
+
+        # Initialize the empty tensor and empty dictionary
+        attackersDict = dict()  # key = position, value = amount of pieces it can capture
+        features: torch.Tensor = torch.zeros([64, 12], dtype=torch.float32)
+
+        # Go over all the positions
+        for square in chess.SQUARES:
+            attackedPiece = board.piece_at(square)
+            # Check if there is a piece on the current square
+            if attackedPiece is not None:
+                # Determine the color of the attacking piece
+                attackingColor = not attackedPiece.color
+
+                # Look at all the pieces of the attackingColor that can attack the current position
+                attackers = board.attackers(attackingColor, square)
+
+                # If there is an attacker, set that position in the dict +1 because it can attack a piece of the other color
+                for attackerSquare in attackers:
+                    if attackerSquare not in attackersDict.keys():
+                        attackersDict[attackerSquare] = 1
+                    else:
+                        attackersDict[attackerSquare] += 1
+
+        for square in chess.SQUARES:
+            currPiece = board.piece_at(square)
+            if currPiece is not None:
+                # Get piece pieceColor
+                if currPiece.color == board.turn:
+                    pieceColor = 0
+                else:
+                    pieceColor = 5
+
+                # Get the piece value: this will be the value of the piece + 5 if it is a black piece
+                # We do -1 because the Tensor starts at 0 (white pawn = 0)
+                pieceVal = currPiece.piece_type + pieceColor - 1
+
+                if square not in attackersDict.keys():
+                    pieceAttacks = 0
+                else:
+                    pieceAttacks = attackersDict[square]
+
+                features[square][pieceVal] = pieceAttacks
+
+        return torch.flatten(features)
+
+    def getName(self) -> string:
+        return "CanCaptureHeuristic"
+
+
