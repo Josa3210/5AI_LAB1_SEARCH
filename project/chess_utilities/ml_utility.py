@@ -7,7 +7,7 @@ class MachineLearningUtility(Utility):
     def __init__(self, network: NeuralNetworkHeuristic) -> None:
         super().__init__()
         self.network = network
-    
+        self.network.eval()
+
     def board_value(self, board: chess.Board) -> float:
-        # TODO: pass the board the neural network and return the value
-        raise NotImplementedError
+        return self.network.execute(board=board)
