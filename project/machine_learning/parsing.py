@@ -16,6 +16,7 @@ chessData = tuple[chess.Board, float]
 chessDataTensor = tuple[boardTensor, torch.Tensor]
 chessDataBatch = list[chessDataTensor]
 
+
 class ChessDataSet(Dataset):
     def __init__(self, dataGenerator: Generator[chessData, None, None]) -> None:
         super().__init__()
@@ -31,18 +32,19 @@ class ChessDataSet(Dataset):
     def __len__(self) -> int:
         return len(self.labels)
 
+
 class ChessDataLoader():
     def __init__(self, data_parser: "DataParser", batch_size: int = 32) -> None:
-        self.batch_size : int = batch_size
-        self.data_size : int = data_parser.size
-        self.data : list[chessDataBatch] = None
+        self.batch_size: int = batch_size
+        self.data_size: int = data_parser.size
+        self.data: list[chessDataBatch] = None
         self.data_parser = data_parser
-        
+
     def __iter__(self) -> Generator[chessDataTensor, None, None]:
         if self.data != None:
             yield from self.data
             return
-        currentBatch : list[chessData]= []
+        currentBatch: list[chessData] = []
         for chessData in self.data_parser.values():
             currentBatch.append(chessData)
             if len(currentBatch) is self.batch_size:
@@ -50,21 +52,21 @@ class ChessDataLoader():
                 currentBatch = []
         if len(currentBatch) != 0:
             yield self.chessDataToTensor(currentBatch)
-    
+
     def __len__(self):
         return self.data_size
-            
-    def chessDataToTensor(self, chessData:  list[chessData]) -> chessDataTensor:
-        boardFeatures : list[boardTensor] = []
-        evaluations : list[torch.Tensor] = []
+
+    def chessDataToTensor(self, chessData: list[chessData]) -> chessDataTensor:
+        boardFeatures: list[boardTensor] = []
+        evaluations: list[torch.Tensor] = []
         for board, evaluation in chessData:
             boardFeature = NeuralNetworkHeuristic.featureExtraction(board)
             boardFeatures.append(boardFeature)
             evaluations.append(torch.tensor(evaluation))
         evaluations = torch.stack(evaluations).unsqueeze(1)
-        return torch.stack(boardFeatures),  evaluations
+        return torch.stack(boardFeatures), evaluations
 
-    
+
 class DataParser():
     """
     This class is the place to crunch large datasets into useable data for training.
@@ -75,6 +77,13 @@ class DataParser():
         self.cachedFile = filePath + ".cache"
         self.dataSet: ChessDataSet = None
         self.size = 0
+
+    def readGame(self):
+        with open(self.filePath, encoding='utf-8') as file:
+            game = chess.pgn.read_game(file)
+            while game is not None:
+                game = chess.pgn.read_game(file)
+                yield game
 
     def parse(self, overwriteCache=False) -> None:
         """
@@ -87,22 +96,18 @@ class DataParser():
                 self.size = sum(1 for _ in file)
             return
 
-        games: list[chess.pgn.Game] = []
-        with open(self.filePath, encoding='utf-8') as file:
-            game = chess.pgn.read_game(file)
-            while game is not None:
-                games.append(game)
-                game = chess.pgn.read_game(file)
-        print(f"Data parser read in {len(games)} games.\nStart reading in boardStates")
         boards: list[chess.Board] = []
-        for i, game in enumerate(games):
+        i: int = 0
+        for game in self.readGame():
             board: chess.Board = game.board()
             for move in game.mainline_moves():
                 board.push(move)
                 boards.append(deepcopy(board))
             if (i + 1) % 100 == 0:
-                print(f"Read {i + 1} out of {len(games)} games for extracting positions")
+                print(f"Read {i + 1} games for extracting positions")
+            i += 1
         print(f"Read in {len(boards)} different positions.\nStarting stockfish evaluation")
+
         with open(self.cachedFile, 'w') as cacheFile:
             with chess.engine.SimpleEngine.popen_uci("project/chess_engines/stockfish/stockfish-windows-x86-64-avx2.exe") as engine:
                 counter = 0
