@@ -1,18 +1,14 @@
-import os
 from copy import deepcopy
-from math import floor, tanh
-from typing import Generator, Type
-from random import shuffle
+from math import tanh
+from typing import Generator
 
 import chess
-import chess.engine
 import chess.pgn
+import chess.engine
+import os
+from torch.utils.data import Dataset, DataLoader
+from project.machine_learning.neural_network_heuristic import NeuralNetworkHeuristic
 import torch
-from torch.utils.data import DataLoader, Dataset
-
-from project.machine_learning.neural_network_heuristic import (
-    NeuralNetworkHeuristic,
-)
 
 boardTensor = torch.Tensor
 evaluationTensor = torch.Tensor
@@ -46,9 +42,6 @@ class ChessDataLoader():
 
     def __iter__(self) -> Generator[chessDataTensor, None, None]:
         if self.data != None:
-            print("Shuffling data", end='\r')
-            shuffle(self.data)
-            print(" "*100, end= '\r')
             yield from self.data
             return
         currentBatch: list[tuple[chess.Board, float]] = []
@@ -67,7 +60,7 @@ class ChessDataLoader():
         boardFeatures: list[boardTensor] = []
         evaluations: list[torch.Tensor] = []
         for board, evaluation in chessData:
-            boardFeature = self.heuristic.featureExtraction(board)
+            boardFeature = NeuralNetworkHeuristic.featureExtraction(board)
             boardFeatures.append(boardFeature)
             evaluations.append(torch.tensor(evaluation))
         evaluations = torch.stack(evaluations).unsqueeze(1)
@@ -98,7 +91,7 @@ class DataParser():
         if overwriteCache is false it will look if the calculations were already done.
         """
         if not overwriteCache and os.path.exists(self.cachedFile):
-            #print(f"Found previous data, values are already available")
+            print(f"Found previous data, values are already available")
             with open(self.cachedFile, 'rb') as file:
                 self.size = sum(1 for _ in file)
             return
