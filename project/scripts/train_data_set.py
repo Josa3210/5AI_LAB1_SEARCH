@@ -60,9 +60,9 @@ if __name__ == '__main__':
     optimizer = Adam(model.parameters(), lr=0.00001)
     # optimizer = torch.optim.Adam()
     criterion: Criterion = nn.MSELoss()
-    trainingData = DataParser(filePath="project/data/Carlsen.pgn")
+    trainingData = DataParser(filePath="project/data/raw/training/Carlsen.pgn")
     trainingData.parse()
-    testData = DataParser(filePath="project/data/Carlsen.test.pgn")
+    testData = DataParser(filePath="project/data/raw/validation/Carlsen.test.pgn")
     testData.parse()
 
     trainingDataLoader = trainingData.getDataLoader(32)
