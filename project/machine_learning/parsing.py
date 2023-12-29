@@ -44,7 +44,7 @@ class ChessDataLoader():
         if self.data != None:
             yield from self.data
             return
-        currentBatch: list[chessData] = []
+        currentBatch: list[tuple[chess.Board, float]] = []
         for chessData in self.data_parser.values():
             currentBatch.append(chessData)
             if len(currentBatch) is self.batch_size:
