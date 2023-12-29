@@ -83,7 +83,8 @@ class DataParser():
             game = chess.pgn.read_game(file)
             while game is not None:
                 game = chess.pgn.read_game(file)
-                yield game
+                if game is not None:
+                    yield game
 
     def parse(self, overwriteCache=False) -> None:
         """
