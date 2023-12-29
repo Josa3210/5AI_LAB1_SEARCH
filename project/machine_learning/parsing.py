@@ -96,6 +96,7 @@ class DataParser():
                 self.size = sum(1 for _ in file)
             return
 
+        print(f"Reading file: {self.filePath}")
         boards: list[chess.Board] = []
         i: int = 0
         for game in self.readGame():
@@ -104,7 +105,7 @@ class DataParser():
                 board.push(move)
                 boards.append(deepcopy(board))
             if (i + 1) % 100 == 0:
-                print(f"Read {i + 1} games for extracting positions")
+                print(f"Read {i + 1} games for extracting positions", end='\r')
             i += 1
         print(f"Read in {len(boards)} different positions.\nStarting stockfish evaluation")
 
@@ -119,10 +120,10 @@ class DataParser():
                     cacheFile.write(f"{fenString},{value}\n")
                     counter += 1
                     if counter % 500 == 0:
-                        print(f"Read in and evaluated {counter} out of {len(boards)} positions.")
+                        print(f"Read in and evaluated {counter} out of {len(boards)} positions.", end='\r')
                         cacheFile.flush()
                 self.size = counter
-        print("Evaluated all positions, data is now accessible via self.values")
+        print(f"Evaluated all {len(boards)} positions, data is now accessible via self.values")
 
     def values(self) -> Generator[tuple[chess.Board, float], None, None]:
         """
