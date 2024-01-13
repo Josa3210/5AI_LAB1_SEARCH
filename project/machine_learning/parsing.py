@@ -34,24 +34,26 @@ class ChessDataSet(Dataset):
 
 
 class ChessDataLoader():
-    def __init__(self, data_parser: "DataParser", batch_size: int = 32) -> None:
+    def __init__(self, data_parsers: list["DataParser"], batch_size: int = 32, heuristic = NeuralNetworkHeuristic) -> None:
         self.batch_size: int = batch_size
-        self.data_size: int = data_parser.size
+        self.data_size: int = sum([parser.size for parser in data_parsers])
         self.data: list[chessDataBatch] = None
-        self.data_parser = data_parser
+        self.data_parsers = data_parsers
+        self.heuristic = heuristic
 
     def __iter__(self) -> Generator[chessDataTensor, None, None]:
         if self.data != None:
             yield from self.data
             return
         currentBatch: list[tuple[chess.Board, float]] = []
-        for chessData in self.data_parser.values():
-            currentBatch.append(chessData)
-            if len(currentBatch) is self.batch_size:
+        for parser in self.data_parsers:
+            for chessData in parser.values():
+                currentBatch.append(chessData)
+                if len(currentBatch) is self.batch_size:
+                    yield self.chessDataToTensor(currentBatch)
+                    currentBatch = []
+            if len(currentBatch) != 0:
                 yield self.chessDataToTensor(currentBatch)
-                currentBatch = []
-        if len(currentBatch) != 0:
-            yield self.chessDataToTensor(currentBatch)
 
     def __len__(self):
         return self.data_size
@@ -60,12 +62,15 @@ class ChessDataLoader():
         boardFeatures: list[boardTensor] = []
         evaluations: list[torch.Tensor] = []
         for board, evaluation in chessData:
-            boardFeature = NeuralNetworkHeuristic.featureExtraction(board)
+            boardFeature = self.heuristic.featureExtraction(board)
             boardFeatures.append(boardFeature)
             evaluations.append(torch.tensor(evaluation))
         evaluations = torch.stack(evaluations).unsqueeze(1)
-        return torch.stack(boardFeatures), evaluations
-
+        features =  torch.stack(boardFeatures)
+        if torch.cuda.is_available():
+            features = features.to('cuda')
+            evaluations = evaluations.to('cuda')
+        return features, evaluations
 
 class DataParser():
     """

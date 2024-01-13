@@ -123,7 +123,7 @@ if __name__ == '__main__':
     learningRate = args.learning_rate
     batchSize = args.batch_size
     numberOfEpochs = args.epochs
-    preload = str(args.preload)
+    preload = (args.preload)
 
     print(f"The learning parameters are:\n- Learning rate:\t{learningRate}\n- batchSize:\t\t{batchSize}\n- number of epochs:\t{numberOfEpochs}\n- preload:\t\t{preload}\n")
 
@@ -145,7 +145,7 @@ if __name__ == '__main__':
     criterion: Criterion = nn.MSELoss()
 
     # Specify the folder path you want to get filepaths from
-    trainingFolderPath = "project/data/raw/training2"
+    trainingFolderPath = "project/data/raw/training"
     validationFolderPath = "project/data/raw/validation"
 
     trainDataLoader = collectData(trainingFolderPath, model.__class__, batchSize)
