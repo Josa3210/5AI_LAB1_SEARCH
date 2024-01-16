@@ -40,20 +40,32 @@ class ChessDataLoader():
         self.data: list[chessDataBatch] = None
         self.data_parsers = data_parsers
         self.heuristic = heuristic
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     def __iter__(self) -> Generator[chessDataTensor, None, None]:
         if self.data != None:
             yield from self.data
             return
         currentBatch: list[tuple[chess.Board, float]] = []
+        features_device , evaluations_device = [], []
         for parser in self.data_parsers:
             for chessData in parser.values():
                 currentBatch.append(chessData)
                 if len(currentBatch) is self.batch_size:
-                    yield self.chessDataToTensor(currentBatch)
+                    features, evaluations = self.chessDataToTensor(currentBatch)
+                    del features_device
+                    del evaluations_device
+                    features_device = features.to(self.device)
+                    evaluations_device = evaluations.to(self.device)
+                    yield features_device, evaluations_device
                     currentBatch = []
             if len(currentBatch) != 0:
-                yield self.chessDataToTensor(currentBatch)
+                features, evaluations = self.chessDataToTensor(currentBatch)
+                del features_device
+                del evaluations_device
+                features_device = features.to(self.device)
+                evaluations_device = evaluations.to(self.device)
+                yield features_device, evaluations_device
 
     def __len__(self):
         return self.data_size
@@ -67,9 +79,6 @@ class ChessDataLoader():
             evaluations.append(torch.tensor(evaluation))
         evaluations = torch.stack(evaluations).unsqueeze(1)
         features =  torch.stack(boardFeatures)
-        if torch.cuda.is_available():
-            features = features.to('cuda')
-            evaluations = evaluations.to('cuda')
         return features, evaluations
 
 class DataParser():
