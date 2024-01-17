@@ -5,9 +5,11 @@ from typing import Generator
 import chess
 import chess.pgn
 import chess.engine
+import chess.polyglot
 import os
 from torch.utils.data import Dataset, DataLoader
 from project.machine_learning.neural_network_heuristic import NeuralNetworkHeuristic
+from project.utils.chess_utils import isDraw
 import torch
 
 boardTensor = torch.Tensor
@@ -114,16 +116,35 @@ class DataParser():
         print(f"Reading file: {self.filePath}")
         boards: list[chess.Board] = []
         i: int = 0
+        reader = chess.polyglot.MemoryMappedReader("project/Opening_Book/baron30.bin")
+        openingDrops = 0
+        mateDrops = 0
+        drawDrops = 0
         for game in self.readGame():
             board: chess.Board = game.board()
             for move in game.mainline_moves():
                 board.push(move)
+                if reader.get(board) is not None:
+                     openingDrops += 1
+                     continue
+                elif board.is_checkmate():
+                    mateDrops += 1
+                    continue
+                elif isDraw(board):
+                    drawDrops += 1
+                    continue
                 boards.append(deepcopy(board))
             if (i + 1) % 100 == 0:
                 print(f"Read {i + 1} games for extracting positions", end='\r')
             i += 1
-        print(f"Read in {len(boards)} different positions.\nStarting stockfish evaluation")
-
+        positionCount = len(boards) - openingDrops - mateDrops - drawDrops
+        print(f"""
+    Read in {positionCount} different positions
+    Omitted positions:
+    - {openingDrops} were opening moves
+    - {mateDrops} were mates
+    - {drawDrops} were draws
+              """)
         with open(self.cachedFile, 'w') as cacheFile:
             with chess.engine.SimpleEngine.popen_uci("project/chess_engines/stockfish/stockfish-windows-x86-64-avx2.exe") as engine:
                 counter = 0
@@ -135,10 +156,10 @@ class DataParser():
                     cacheFile.write(f"{fenString},{value}\n")
                     counter += 1
                     if counter % 500 == 0:
-                        print(f"Read in and evaluated {counter} out of {len(boards)} positions.", end='\r')
+                        print(f"Read in and evaluated {counter} out of {positionCount} positions.", end='\r')
                         cacheFile.flush()
                 self.size = counter
-        print(f"Evaluated all {len(boards)} positions, data is now accessible via self.values")
+        print(f"Evaluated all {positionCount} positions, data is now accessible via self.values")
 
     def values(self) -> Generator[tuple[chess.Board, float], None, None]:
         """
@@ -172,7 +193,11 @@ class DataParser():
             with chess.engine.SimpleEngine.popen_uci("project/chess_engines/stockfish/stockfish-windows-x86-64-avx2.exe") as new_engine:
                 info = new_engine.analyse(board, limit=chess.engine.Limit(time=0.2, depth=4))
                 pawnScore = info["score"].white().score(mate_score=100000) / 100.0
-                return (2 / (1 + pow(10, -pawnScore / 4))) - 1
+                return pawnScore
         info = engine.analyse(board, limit=chess.engine.Limit(time=0.1, depth=3))
-        pawnScore = info["score"].white().score(mate_score=100000) / 100.0
-        return tanh(pawnScore)
+        score = info["score"].white()
+        if score.is_mate():
+            # omit mates, network need not be training to evaluate mate score for it can be easily found using code.
+            return None
+        pawnScore = score.score() / 100.0
+        return pawnScore
