@@ -117,6 +117,8 @@ class DataParser():
         boards: list[chess.Board] = []
         i: int = 0
         reader = chess.polyglot.MemoryMappedReader("project/Opening_Book/baron30.bin")
+        engine = chess.engine.SimpleEngine.popen_uci("project/chess_engines/stockfish/stockfish-windows-x86-64-avx2.exe")
+        cacheFile = open(self.cachedFile, 'w')
         openingDrops = 0
         mateDrops = 0
         drawDrops = 0
@@ -133,10 +135,18 @@ class DataParser():
                 elif isDraw(board):
                     drawDrops += 1
                     continue
-                boards.append(deepcopy(board))
+                value = DataParser.evaluateUsingStockFish(board, engine=engine)
+                if value is None:
+                    continue
+                fenString = board.fen()
+                cacheFile.write(f"{fenString},{value}")
             if (i + 1) % 100 == 0:
                 print(f"Read {i + 1} games for extracting positions", end='\r')
+                cacheFile.flush()
             i += 1
+        reader.close()
+        cacheFile.close()
+        engine.close()
         positionCount = len(boards) - openingDrops - mateDrops - drawDrops
         print(f"""
     Read in {positionCount} different positions
@@ -145,21 +155,21 @@ class DataParser():
     - {mateDrops} were mates
     - {drawDrops} were draws
               """)
-        with open(self.cachedFile, 'w') as cacheFile:
-            with chess.engine.SimpleEngine.popen_uci("project/chess_engines/stockfish/stockfish-windows-x86-64-avx2.exe") as engine:
-                counter = 0
-                for board in boards:
-                    fenString = board.fen()
-                    value = DataParser.evaluateUsingStockFish(board, engine=engine)
-                    if value is None:
-                        continue
-                    cacheFile.write(f"{fenString},{value}\n")
-                    counter += 1
-                    if counter % 500 == 0:
-                        print(f"Read in and evaluated {counter} out of {positionCount} positions.", end='\r')
-                        cacheFile.flush()
-                self.size = counter
-        print(f"Evaluated all {positionCount} positions, data is now accessible via self.values")
+        # with open(self.cachedFile, 'w') as cacheFile:
+        #     with chess.engine.SimpleEngine.popen_uci("project/chess_engines/stockfish/stockfish-windows-x86-64-avx2.exe") as engine:
+        #         counter = 0
+        #         for board in boards:
+        #             fenString = board.fen()
+        #             value = DataParser.evaluateUsingStockFish(board, engine=engine)
+        #             if value is None:
+        #                 continue
+        #             cacheFile.write(f"{fenString},{value}\n")
+        #             counter += 1
+        #             if counter % 500 == 0:
+        #                 print(f"Read in and evaluated {counter} out of {positionCount} positions.", end='\r')
+        #                 cacheFile.flush()
+        #         self.size = counter
+        # print(f"Evaluated all {positionCount} positions, data is now accessible via self.values")
 
     def values(self) -> Generator[tuple[chess.Board, float], None, None]:
         """
