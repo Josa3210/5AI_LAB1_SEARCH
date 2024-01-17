@@ -17,7 +17,7 @@ import random
 
 import matplotlib.pyplot as plt
 
-from project.machine_learning.neural_network_heuristic import NeuralNetworkHeuristic, CanCaptureHeuristic, CanCaptureHeuristicBit
+from project.machine_learning.neural_network_heuristic import NeuralNetworkHeuristic, CanCaptureHeuristic, CanCaptureHeuristicBit, WorldViewHeuristic
 from project.machine_learning.parsing import ChessDataLoader, DataParser
 
 
@@ -78,7 +78,7 @@ def train(model: nn.Module, optimizer: Optimizer, criterion: Criterion, dataLoad
             _reportLoss = 0
             print(f"{batch}: Average loss over last {reportingPeriod} batches: {round(batchLoss, 5)} ")
     print(" " * 130, end="\r")
-    _averageTrainingLoss = _runningLoss / len(dataLoader)
+    _averageTrainingLoss = _runningLoss / (len(dataLoader)//batchSize)
     return round(_averageTrainingLoss, 5)
 
 
@@ -95,11 +95,11 @@ def validate(model: nn.Module, criterion: Criterion, validationDataLoader: DataL
 
             _validationLoss += loss.item()
             if j % 20:
-                percentage = floor(j / len(validationDataLoader) * 100)
+                percentage = floor(j / (len(validationDataLoader)//batchSize) * 100)
                 print("Evaluating: {", "=" * percentage,
                       " " * (100 - percentage), "}", end='\r')
 
-    return round(_validationLoss / len(validationDataLoader), 5)
+    return round(_validationLoss / (len(validationDataLoader)//batchSize), 5)
 
 
 def collectData(folder_path: str, heuristic: Type[NeuralNetworkHeuristic], batchSize: int) -> ChessDataLoader:
@@ -132,7 +132,8 @@ if __name__ == '__main__':
     """
     vvv Insert model here vvv
     """
-    model: nn.Module = CanCaptureHeuristicBit(128, 64, 0, nn.LeakyReLU(), 0.3)
+    # model: nn.Module = CanCaptureHeuristicBit(128, 64, 0, nn.LeakyReLU(), 0.3)
+    model: NeuralNetworkHeuristic = WorldViewHeuristic()
     earlyStopper: EarlyStopper = EarlyStopper(1, 0.005)
     if preload is not None:
         model = torch.load(preload)
@@ -150,7 +151,7 @@ if __name__ == '__main__':
 
     trainDataLoader = collectData(trainingFolderPath, model.__class__, batchSize)
     validationDataLoader = collectData(validationFolderPath, model.__class__, batchSize)
-    print(f"Total amount of batches:\n- training:\t{len(trainDataLoader)}\n- validation:\t{len(validationDataLoader)}\n")
+    print(f"Total amount of batches:\n- training:\t{len(trainDataLoader)} datapoints -> {len(trainDataLoader)//batchSize} batches\n- validation:\t{len(validationDataLoader)} datapoints -> {len(validationDataLoader)//batchSize} batches\n")
 
     print("Start training: \n" + "=" * 100, '\n')
     startTime = time.perf_counter()
