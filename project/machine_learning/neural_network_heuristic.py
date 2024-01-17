@@ -1,3 +1,4 @@
+from enum import Enum
 import string
 from abc import abstractmethod
 
@@ -365,4 +366,66 @@ class CanCaptureHeuristic(NeuralNetworkHeuristic):
     def getName(self) -> string:
         return "CanCaptureHeuristic"
 
+class PIECES(Enum):
+    B_ROOK = chess.Piece.from_symbol('r')
+    B_KNIGHT = chess.Piece.from_symbol('n')
+    B_BISHOP = chess.Piece.from_symbol('b')
+    B_QUEEN = chess.Piece.from_symbol('q')
+    B_KING = chess.Piece.from_symbol('k')
+    B_PAWN = chess.Piece.from_symbol('p')
+    W_ROOK = chess.Piece.from_symbol('R')
+    W_KNIGHT = chess.Piece.from_symbol('N')
+    W_BISHOP = chess.Piece.from_symbol('B')
+    W_QUEEN = chess.Piece.from_symbol('Q')
+    W_KING = chess.Piece.from_symbol('K')
+    W_PAWN = chess.Piece.from_symbol('P')
 
+
+class WorldViewHeuristic(NeuralNetworkHeuristic):
+    def __init__(self) -> None:
+        super().__init__()
+        layer1Size = 64*64*10*2
+        layer2Size = 32
+        layer3Size = 3
+        self.hidden = nn.Sequential(
+            nn.Linear(layer1Size, layer2Size),
+            nn.ReLU(),
+            nn.Linear(layer2Size, layer3Size),
+            nn.ReLU(),
+            nn.Linear(layer3Size, 1),
+        )
+
+    def getName(self):
+        return "WorldViewHeuristic"
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x should have shape [512]
+        return self.hidden(x)
+        
+    def featureExtraction(board: chess.Board) -> torch.Tensor:
+        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+        pieceMap = board.piece_map()
+        whiteTensorMap = {piece.value : torch.zeros(64, device=device) for piece in PIECES}
+
+
+        for square, piece in pieceMap.items():
+            whiteTensorMap[piece][square] = 1
+        blackKingTensor = whiteTensorMap.pop(chess.Piece.from_symbol('k')).flip([0])
+        whiteKingTensor = whiteTensorMap.pop(chess.Piece.from_symbol('K'))
+        whiteTensor = torch.concat(list(whiteTensorMap.values()))
+        whiteWorldView : torch.Tensor = whiteKingTensor.outer(whiteTensor)
+
+        blackTensor = torch.concat([tensor.flip([0]) for tensor in whiteTensorMap.values()])
+
+        blackWorldView = blackKingTensor.outer(blackTensor)
+
+        whiteWorldView = torch.flatten(whiteWorldView)
+        blackWorldView = torch.flatten(blackWorldView)
+
+        positionTensor = torch.concat([whiteWorldView, blackWorldView]).to("cpu") if board.turn == chess.WHITE else torch.concat([blackWorldView, whiteWorldView]).to('cpu')
+        # denseWorldView = torch.add(torch.stack([self.denseWorldViewBiases, self.denseWorldViewBiases], dim=1), torch.matmul(self.denseWorldMatrix, positionTensor)) # [2, 256]
+        # denseWorldViewWhite = denseWorldView[:, 0]
+        # denseWorldViewBlack = denseWorldView[:, 1]
+        # flattenedDenseWorldView = torch.concat([denseWorldViewWhite, denseWorldViewBlack]) if board.turn == chess.WHITE else torch.concat([denseWorldViewBlack, denseWorldViewWhite])
+        return positionTensor
