@@ -139,7 +139,7 @@ class DataParser():
                 if value is None:
                     continue
                 fenString = board.fen()
-                cacheFile.write(f"{fenString},{value}")
+                cacheFile.write(f"{fenString},{value}\n")
             if (i + 1) % 100 == 0:
                 print(f"Read {i + 1} games for extracting positions", end='\r')
                 cacheFile.flush()
