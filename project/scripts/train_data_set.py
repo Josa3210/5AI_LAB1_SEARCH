@@ -16,12 +16,12 @@ import torch.optim
 from torch.cuda.amp import autocast
 from torch.optim import Adam, Optimizer
 from torch.utils.data import DataLoader
-import random
 
 import matplotlib.pyplot as plt
 
 from project.machine_learning.neural_network_heuristic import NeuralNetworkHeuristic, CanCaptureHeuristic, CanCaptureHeuristicBit, WorldViewHeuristic
 from project.machine_learning.parsing import ChessDataLoader, DataParser
+from project.utils.key_utils import subToKey
 
 isPaused = False
 def pausePoint():
@@ -181,7 +181,7 @@ if __name__ == '__main__':
             while res != "y":
                 res = input("Do you wish to continue? [y/n]: ")
             isPaused = False
-    keyboard.on_press_key(key='space', callback=on_press_space)
+    subToKey(key=' ', callback=on_press_space)
     
     print("If you want to pause training at any moment press SPACE")
 

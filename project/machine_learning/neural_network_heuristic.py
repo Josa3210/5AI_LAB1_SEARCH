@@ -392,7 +392,7 @@ class WorldViewHeuristic(NeuralNetworkHeuristic):
         super().__init__()
         layer1Size = 64*64*10*2
         layer2Size = 32
-        layer3Size = 3
+        layer3Size = 32
         self.hidden = nn.Sequential(
             nn.Linear(layer1Size, layer2Size),
             nn.ReLU(),
