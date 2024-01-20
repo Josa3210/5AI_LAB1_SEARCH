@@ -78,6 +78,11 @@ class ChessDataLoader():
         for board, evaluation in chessData:
             boardFeature = self.heuristic.featureExtraction(board)
             boardFeatures.append(boardFeature)
+            if self.heuristic.forwardReturnsRelativeScore:
+                # the evaluation itself is absolute relative to white, so when black is playing evaluation needs to be flipped
+                if board.turn == chess.BLACK:
+                    evaluations.append(torch.tensor(-evaluation))
+                    continue
             evaluations.append(torch.tensor(evaluation))
         evaluations = torch.stack(evaluations).unsqueeze(1)
         features =  torch.stack(boardFeatures)

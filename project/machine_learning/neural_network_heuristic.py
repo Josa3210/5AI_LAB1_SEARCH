@@ -21,7 +21,13 @@ class NeuralNetworkHeuristic(nn.Module):
 
     def featureExtraction(board: chess.Board) -> torch.Tensor:
         pass
-
+    
+    def forwardReturnsRelativeScore(self) -> bool:
+        """
+        Does the forward function return the relative score or the absolute score (from white's pov),
+        default false
+        """
+        return False
 
 class SimpleNeuralNetworkHeuristic(NeuralNetworkHeuristic):
     def __init__(self) -> None:
@@ -394,6 +400,9 @@ class WorldViewHeuristic(NeuralNetworkHeuristic):
             nn.ReLU(),
             nn.Linear(layer3Size, 1),
         )
+
+    def forwardReturnsRelativeScore(self) -> bool:
+        return True
 
     def getName(self):
         return "WorldViewHeuristic"
