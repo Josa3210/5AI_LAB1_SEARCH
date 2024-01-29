@@ -7,6 +7,8 @@ from torch import nn
 import torch
 import numpy
 
+from project.utils.chess_utils import isDraw
+
 
 class NeuralNetworkHeuristic(nn.Module):
     def __init__(self) -> None:
@@ -393,15 +395,18 @@ class PIECES(Enum):
 class WorldViewHeuristic(NeuralNetworkHeuristic):
     def __init__(self) -> None:
         super().__init__()
-        layer1Size = 64 * 64 * 10 * 2
-        layer2Size = 32
+        layer1Size = 64*64*10*2
+        layer2Size = 512
         layer3Size = 32
+        layer4Size = 32
         self.hidden = nn.Sequential(
             nn.Linear(layer1Size, layer2Size),
             nn.ReLU(),
             nn.Linear(layer2Size, layer3Size),
             nn.ReLU(),
-            nn.Linear(layer3Size, 1),
+            nn.Linear(layer3Size, layer4Size),
+            nn.ReLU(),
+            nn.Linear(layer4Size, 1)
         )
 
     def forwardReturnsRelativeScore(self) -> bool:
@@ -413,7 +418,18 @@ class WorldViewHeuristic(NeuralNetworkHeuristic):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x should have shape [512]
         return self.hidden(x)
-
+        
+    def execute(self, board: chess.Board) -> float:
+        turn = 1 if board.turn == chess.WHITE else -1
+        if board.is_checkmate():
+            return turn * float("inf")
+        elif isDraw(board):
+            return 0.0
+        features = WorldViewHeuristic.featureExtraction(board)
+        features = features.to('cuda' if torch.cuda.is_available() else 'cpu')
+        score = self.forward(features).item()
+        return score * turn
+        
     def featureExtraction(board: chess.Board) -> torch.Tensor:
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 

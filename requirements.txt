@@ -1,0 +1,8 @@
+bayesian_optimization==1.4.3
+chess==1.10.0
+keyboard==0.13.5
+matplotlib==3.8.1
+numpy==1.25.2
+setuptools==65.5.0
+torch==2.1.1+cu121
+~orch==2.1.1
