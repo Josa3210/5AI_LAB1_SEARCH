@@ -21,13 +21,14 @@ class NeuralNetworkHeuristic(nn.Module):
 
     def featureExtraction(board: chess.Board) -> torch.Tensor:
         pass
-    
+
     def forwardReturnsRelativeScore(self) -> bool:
         """
         Does the forward function return the relative score or the absolute score (from white's pov),
         default false
         """
         return False
+
 
 class SimpleNeuralNetworkHeuristic(NeuralNetworkHeuristic):
     def __init__(self) -> None:
@@ -132,7 +133,7 @@ class CanCaptureHeuristicBit(NeuralNetworkHeuristic):
     def __init__(self, nL1: int, nL2: int, nL3: int, activation: nn.modules.activation, dropoutRate: float) -> None:
         super().__init__()
 
-        self.nInput = 64 * 12 * 9
+        self.nInput = 64 * 13 * 9
         self.nOutput = 1
 
         self.nL1 = nL1
@@ -205,7 +206,7 @@ class CanCaptureHeuristicBit(NeuralNetworkHeuristic):
 
         # Initialize the empty tensor and empty dictionary
         attackersDict = dict()  # key = position, value = amount of pieces it can capture
-        features: torch.Tensor = torch.zeros([64, 12, 9], dtype=torch.float32)
+        features: torch.Tensor = torch.zeros([64, 13, 9], dtype=torch.float32)
 
         # Go over all the positions
         for square in chess.SQUARES:
@@ -250,11 +251,12 @@ class CanCaptureHeuristicBit(NeuralNetworkHeuristic):
     def getName(self) -> string:
         return "CanCaptureHeuristicBit"
 
+
 class CanCaptureHeuristic(NeuralNetworkHeuristic):
     def __init__(self, nL1: int, nL2: int, nL3: int, activation: nn.modules.activation, dropoutRate: float) -> None:
         super().__init__()
 
-        self.nInput = 64 * 12
+        self.nInput = 64 * 13
         self.nOutput = 1
 
         self.nL1 = nL1
@@ -319,7 +321,7 @@ class CanCaptureHeuristic(NeuralNetworkHeuristic):
         """
         This takes a board and converts it to the input of our neural network.
         The input will be a set of (curr_pos, piece_type, am_can_capture)
-        Input size will be: 64 * 13 * 9 = 5760
+        Input size will be: 64 * 13 = 768
         - 64 board positions    -> starting from A1 (left white rook) to H7 (right black rook)
         - 13 piece types        -> 0: no piece, 1: white pawn, 2: white bishop, 3: white knight, 4: white rook, 5: white queen, 6: white king, 7-12: same but black pieces
         - 9 captures states     -> the amount of pieces that can be captured by the piece (0 is none can be taken, +1 for every direction a piece can be captured)
@@ -327,7 +329,7 @@ class CanCaptureHeuristic(NeuralNetworkHeuristic):
 
         # Initialize the empty tensor and empty dictionary
         attackersDict = dict()  # key = position, value = amount of pieces it can capture
-        features: torch.Tensor = torch.zeros([64, 12], dtype=torch.float32)
+        features: torch.Tensor = torch.zeros([64, 13], dtype=torch.float32)
 
         # Go over all the positions
         for square in chess.SQUARES:
@@ -372,6 +374,7 @@ class CanCaptureHeuristic(NeuralNetworkHeuristic):
     def getName(self) -> string:
         return "CanCaptureHeuristic"
 
+
 class PIECES(Enum):
     B_ROOK = chess.Piece.from_symbol('r')
     B_KNIGHT = chess.Piece.from_symbol('n')
@@ -390,7 +393,7 @@ class PIECES(Enum):
 class WorldViewHeuristic(NeuralNetworkHeuristic):
     def __init__(self) -> None:
         super().__init__()
-        layer1Size = 64*64*10*2
+        layer1Size = 64 * 64 * 10 * 2
         layer2Size = 32
         layer3Size = 32
         self.hidden = nn.Sequential(
@@ -410,20 +413,19 @@ class WorldViewHeuristic(NeuralNetworkHeuristic):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x should have shape [512]
         return self.hidden(x)
-        
+
     def featureExtraction(board: chess.Board) -> torch.Tensor:
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
         pieceMap = board.piece_map()
-        whiteTensorMap = {piece.value : torch.zeros(64, device=device) for piece in PIECES}
-
+        whiteTensorMap = {piece.value: torch.zeros(64, device=device) for piece in PIECES}
 
         for square, piece in pieceMap.items():
             whiteTensorMap[piece][square] = 1
         blackKingTensor = whiteTensorMap.pop(chess.Piece.from_symbol('k')).flip([0])
         whiteKingTensor = whiteTensorMap.pop(chess.Piece.from_symbol('K'))
         whiteTensor = torch.concat(list(whiteTensorMap.values()))
-        whiteWorldView : torch.Tensor = whiteKingTensor.outer(whiteTensor)
+        whiteWorldView: torch.Tensor = whiteKingTensor.outer(whiteTensor)
 
         blackTensor = torch.concat([tensor.flip([0]) for tensor in whiteTensorMap.values()])
 
