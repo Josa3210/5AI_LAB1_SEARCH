@@ -198,7 +198,7 @@ class CanCaptureHeuristicBit(NeuralNetworkHeuristic):
         """
         This takes a board and converts it to the input of our neural network.
         The input will be a set of (curr_pos, piece_type, am_can_capture)
-        Input size will be: 64 * 13 * 9 = 5760
+        Input size will be: 64 * 13 * 9 = 7488
         - 64 board positions    -> starting from A1 (left white rook) to H7 (right black rook)
         - 13 piece types        -> 0: no piece, 1: white pawn, 2: white bishop, 3: white knight, 4: white rook, 5: white queen, 6: white king, 7-12: same but black pieces
         - 9 captures states     -> the amount of pieces that can be captured by the piece (0 is none can be taken, +1 for every direction a piece can be captured)
@@ -417,26 +417,34 @@ class WorldViewHeuristic(NeuralNetworkHeuristic):
     def featureExtraction(board: chess.Board) -> torch.Tensor:
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
+        # Create a tensor of every position for every piece in the game
         pieceMap = board.piece_map()
         whiteTensorMap = {piece.value: torch.zeros(64, device=device) for piece in PIECES}
 
+        # Indicate for every piece it's position using on hot encoding
         for square, piece in pieceMap.items():
             whiteTensorMap[piece][square] = 1
-        blackKingTensor = whiteTensorMap.pop(chess.Piece.from_symbol('k')).flip([0])
+
+        # Get the positionTensor of the white king
         whiteKingTensor = whiteTensorMap.pop(chess.Piece.from_symbol('K'))
+        # Get the positionTensor of the black king (from black perspective)
+        blackKingTensor = whiteTensorMap.pop(chess.Piece.from_symbol('k')).flip([0])
+
+        # Convert the tensor in a long list of values
         whiteTensor = torch.concat(list(whiteTensorMap.values()))
+
+        # Matrix multiplication with whiteKingTensor
         whiteWorldView: torch.Tensor = whiteKingTensor.outer(whiteTensor)
 
+        # Invert all the position to blacks perspective
         blackTensor = torch.concat([tensor.flip([0]) for tensor in whiteTensorMap.values()])
 
+        # Matrix multiplication with blackKingTensor
         blackWorldView = blackKingTensor.outer(blackTensor)
 
         whiteWorldView = torch.flatten(whiteWorldView)
         blackWorldView = torch.flatten(blackWorldView)
 
+        # Concatenate the 2 values based on the turn
         positionTensor = torch.concat([whiteWorldView, blackWorldView]).to("cpu") if board.turn == chess.WHITE else torch.concat([blackWorldView, whiteWorldView]).to('cpu')
-        # denseWorldView = torch.add(torch.stack([self.denseWorldViewBiases, self.denseWorldViewBiases], dim=1), torch.matmul(self.denseWorldMatrix, positionTensor)) # [2, 256]
-        # denseWorldViewWhite = denseWorldView[:, 0]
-        # denseWorldViewBlack = denseWorldView[:, 1]
-        # flattenedDenseWorldView = torch.concat([denseWorldViewWhite, denseWorldViewBlack]) if board.turn == chess.WHITE else torch.concat([denseWorldViewBlack, denseWorldViewWhite])
         return positionTensor
