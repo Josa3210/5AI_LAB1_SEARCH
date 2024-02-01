@@ -63,6 +63,9 @@ class MiniMaxAgent(Agent):
                     break
                 board.push(move)
                 opponent_disadvantage = - self.negaMax(board, depth - 1, -flip_value, start_time, alpha, beta)
+                if abs(opponent_disadvantage) == float("inf"):
+                    print("Weird result, omitting")
+                    continue
                 if opponent_disadvantage > value:
                     value = opponent_disadvantage
                     best_move = move

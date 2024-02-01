@@ -422,7 +422,7 @@ class WorldViewHeuristic(NeuralNetworkHeuristic):
     def execute(self, board: chess.Board) -> float:
         turn = 1 if board.turn == chess.WHITE else -1
         if board.is_checkmate():
-            return turn * float("inf")
+            return turn * (20000.0)
         elif isDraw(board):
             return 0.0
         features = WorldViewHeuristic.featureExtraction(board)
